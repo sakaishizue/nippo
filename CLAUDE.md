@@ -28,3 +28,4 @@ Gitフック(husky、設定は `.husky/`):
 - API仕様書: @docs/api.md
 - テスト仕様書: @docs/test-spec.md
 - 技術選定書: @docs/tech-stack.md
+- CI/CD 設定手順書: @docs/cicd.md

@@ -1,0 +1,65 @@
+name: Deploy staging
+
+# main の CI が成功したら、イメージを作ってステージングにデプロイする
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-southeast1
+  IMAGE: asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/app:${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  deploy:
+    name: Build and deploy to staging
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Skip until the app has a Dockerfile
+        id: dockerfile
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Dockerfile がないため、デプロイをスキップします"
+          fi
+      - uses: google-github-actions/auth@v3
+        if: steps.dockerfile.outputs.exists == 'true'
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+        if: steps.dockerfile.outputs.exists == 'true'
+      - name: Build and push image
+        if: steps.dockerfile.outputs.exists == 'true'
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+      - id: deploy
+        if: steps.dockerfile.outputs.exists == 'true'
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: nippo-staging
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}
+          flags: --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }} --allow-unauthenticated
+          secrets: |
+            DATABASE_URL=nippo-staging-database-url:latest

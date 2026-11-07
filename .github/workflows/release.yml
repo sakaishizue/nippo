@@ -1,0 +1,81 @@
+name: Release production
+
+# ステージングで確認したバージョンを、手動で本番に出す
+#   1. step=deploy  : トラフィックを流さずにデプロイし、確認用URL(タグ付きリビジョン)を発行する
+#   2. step=promote : 確認用URLで問題がなければ、利用者のアクセスを切り替える
+on:
+  workflow_dispatch:
+    inputs:
+      step:
+        description: 実行する手順
+        type: choice
+        options: [deploy, promote]
+        required: true
+      sha:
+        description: 出すバージョンのコミットSHA(40桁)。省略時は main の最新
+        type: string
+        required: false
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-southeast1
+  SHA: ${{ inputs.sha || github.sha }}
+
+jobs:
+  release:
+    name: ${{ inputs.step }}
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Resolve image and tag
+        run: |
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha には40桁のコミットSHAを指定してください"
+            exit 1
+          fi
+          echo "IMAGE=${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/app:${SHA}" >> "$GITHUB_ENV"
+          echo "TAG=rc-${SHA::7}" >> "$GITHUB_ENV"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      # 初回はサービスがないため、トラフィックなしのデプロイができない。初回だけ通常のデプロイにする
+      - name: Check whether the service exists
+        id: service
+        if: inputs.step == 'deploy'
+        run: |
+          if gcloud run services describe nippo --region "$REGION" --format="value(name)" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: deploy
+        if: inputs.step == 'deploy'
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: nippo
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}
+          no_traffic: ${{ steps.service.outputs.exists }}
+          tag: ${{ env.TAG }}
+          flags: --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }} --allow-unauthenticated
+          secrets: |
+            DATABASE_URL=nippo-database-url:latest
+      - if: inputs.step == 'promote'
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: nippo
+          region: ${{ env.REGION }}
+          tag_traffic: ${{ env.TAG }}=100
