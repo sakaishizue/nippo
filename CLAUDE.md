@@ -8,15 +8,22 @@
 
 - `pnpm check`: リントと整形のチェック
 - `pnpm check:fix`: 自動で直せる問題を修正
+- `pnpm typecheck`: 型チェック(TypeScript 7)。ルートの設定ファイルと、各ワークスペースの `typecheck` スクリプトを実行する
 - `pnpm test`: 単体テストとAPIテスト(Vitest)。テストは `apps/*/src`、`packages/*/src` に `*.test.ts` で置く
 - `pnpm test:coverage`: カバレッジ付きで実行
 - `pnpm test:e2e`: 画面テスト(Playwright)。テストは `e2e/` に置く。PC(Chrome、Edge)とスマートフォン(iPhone、Android)の4種類で実行する。ステージングに対して実行する場合は `E2E_BASE_URL` を指定する
-- コードを変更したら、完了前に `pnpm check` と `pnpm test` が通ることを確認する
+- コードを変更したら、完了前に `pnpm check`、`pnpm typecheck`、`pnpm test` が通ることを確認する
+
+TypeScript の設定:
+
+- 共通の設定は `tsconfig.base.json`。各ワークスペースの `tsconfig.json` はこれを継承し、`package.json` に `typecheck` スクリプト(`tsc -p tsconfig.json`)を置く
+- TypeScript 7 は `types` の既定が空のため、Node.js の型が必要なワークスペースは `"types": ["node"]` を指定する
+- `baseUrl` は非推奨のため使わない。パッケージ間の参照は pnpm ワークスペースのパッケージ名で行う
 
 Gitフック(husky、設定は `.husky/`):
 
 - pre-commit: ステージしたファイルに lint-staged で `biome check --write` を実行する。自動で直せないエラーがあるとコミットできない
-- pre-push: `pnpm test` を実行する
+- pre-push: `pnpm typecheck` と `pnpm test` を実行する
 - フックを `--no-verify` で回避しない。失敗したら原因を直す
 
 ## 設計書

@@ -25,6 +25,7 @@ jobs:
           node-version-file: .node-version
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm typecheck
       - run: pnpm test:coverage
 
   e2e:
