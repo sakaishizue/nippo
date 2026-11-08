@@ -193,14 +193,14 @@ describe("セッションの有効期限(最後のアクセスから7日)", () =
 
     setNow(new Date(start.getTime() + 6 * DAY));
     const res = await client.request("/api/v1/me");
-    expect(res.status).toBe(404); // GET /me は Issue #10 で作る。認証は通っている
+    expect(res.status).toBe(200);
     expect(sessionCookieOf(res)).toBe(client.cookie);
     const session = await testDb.session.findFirstOrThrow();
     expect(session.expiresAt.getTime()).toBe(now().getTime() + 7 * DAY);
 
     // 延長したので、ログインから12日後でも使える
     setNow(new Date(start.getTime() + 12 * DAY));
-    expect((await client.request("/api/v1/me")).status).toBe(404);
+    expect((await client.request("/api/v1/me")).status).toBe(200);
   });
 
   test("前回の延長から1時間たっていなければ、データベースに書き込まない", async () => {
