@@ -8,6 +8,7 @@ import { requestLogger } from "./logger";
 import { loginRoutes, logoutRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { userOptionsRoutes, usersRoutes } from "./routes/users";
 
 // 入力チェックのメッセージを日本語にする
 z.config(z.locales.ja());
@@ -33,6 +34,8 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.use(csrfProtection());
   app.route("/auth/logout", logoutRoutes({ db, secureCookie }));
   app.route("/me", meRoutes({ db }));
+  app.route("/users", usersRoutes({ db }));
+  app.route("/user-options", userOptionsRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);
