@@ -23,7 +23,7 @@ TypeScript の設定:
 Gitフック(husky、設定は `.husky/`):
 
 - pre-commit: ステージしたファイルに lint-staged で `biome check --write` を実行する。自動で直せないエラーがあるとコミットできない
-- pre-push: `pnpm test` を実行する
+- pre-push: `pnpm typecheck` と `pnpm test` を実行する
 - フックを `--no-verify` で回避しない。失敗したら原因を直す
 
 ## 設計書
