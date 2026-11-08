@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --sourcemap --outfile=dist/server.js",
+    "build": "node build.mjs",
     "start": "node --enable-source-maps dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
     "postinstall": "prisma generate",
@@ -20,6 +20,7 @@
     "@hono/node-server": "2.1.6",
     "@hono/zod-validator": "0.9.1",
     "@nippo/shared": "workspace:*",
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "hono": "4.13.16",

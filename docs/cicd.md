@@ -131,6 +131,6 @@ gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="servi
 
 | 項目 | 内容 |
 | --- | --- |
-| `Dockerfile` | 画面のビルドとAPIをまとめたイメージを作る。追加するとステージングへのデプロイが動き出す |
+| `Dockerfile` | 画面のビルドとAPIをまとめたイメージを作る。追加するとステージングへのデプロイが動き出す。API のファイルとは別に、`@node-rs/argon2`(ネイティブモジュール)を node_modules に入れる |
 | マイグレーション | デプロイの前に、Prisma のマイグレーションを実行する手順を追加する |
 | 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する |
