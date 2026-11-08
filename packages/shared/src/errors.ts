@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // API仕様書 1.6 のエラーコードと、対応するステータスコード
 export const ERROR_STATUS = {
+  BAD_REQUEST: 400,
   UNAUTHENTICATED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
@@ -10,6 +11,7 @@ export const ERROR_STATUS = {
   REPORT_ALREADY_EXISTS: 409,
   DUPLICATE_CUSTOMER_NAME: 409,
   CONFLICT: 409,
+  INTERNAL_ERROR: 500,
 } as const;
 export type ErrorCode = keyof typeof ERROR_STATUS;
 
