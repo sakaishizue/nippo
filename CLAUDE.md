@@ -19,6 +19,18 @@ TypeScript の設定:
 - 共通の設定は `tsconfig.base.json`。各ワークスペースの `tsconfig.json` はこれを継承し、`package.json` に `typecheck` スクリプト(`tsc -p tsconfig.json`)を置く
 - TypeScript 7 は `types` の既定が空のため、Node.js の型が必要なワークスペースは `"types": ["node"]` を指定する
 - `baseUrl` は非推奨のため使わない。パッケージ間の参照は pnpm ワークスペースのパッケージ名で行う
+- `@nippo/shared` は TypeScript のソースをそのまま公開する。読み込む側は必ずバンドラー(API は esbuild、画面は Vite)か tsx を通す。`tsc` の出力を Node.js で直接実行しない
+
+API(`apps/api`、Hono):
+
+- `pnpm --filter @nippo/api dev`: 開発サーバー(ファイル監視付き)。`apps/api/.env.example` を `.env` にコピーして使う
+- `pnpm --filter @nippo/api build`: esbuild で `dist/server.js` の1ファイルにまとめる。`start` で起動する
+- ルートは `/api/v1` 配下。アプリの組み立ては `src/app.ts` の `createApp()`、起動は `src/server.ts`
+- エラーは `AppError`(`src/errors.ts`)を投げる。ステータスコードはエラーコードから決まり、API仕様書 1.6 の形式で返る
+- 入力チェックは `validate()`(`src/validator.ts`)を使う。失敗すると `422 VALIDATION_ERROR` になる
+- ログは `log()`(`src/logger.ts`)で JSON を出す。`console.log` を直接使わない
+- テストは `createApp().request()` で API を呼ぶ
+- pnpm は公開から1日経っていない版をインストールしない(`minimumReleaseAge`)。除外設定は入れず、少し前の版を選ぶ
 
 Gitフック(husky、設定は `.husky/`):
 

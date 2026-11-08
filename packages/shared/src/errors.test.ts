@@ -4,6 +4,7 @@ import { ERROR_CODES, ERROR_STATUS, errorResponseSchema } from "./errors";
 describe("API仕様書 1.6 のエラーコード", () => {
   test("エラーコードとステータスコードの対応", () => {
     expect(ERROR_STATUS).toEqual({
+      BAD_REQUEST: 400,
       UNAUTHENTICATED: 401,
       FORBIDDEN: 403,
       NOT_FOUND: 404,
@@ -12,8 +13,9 @@ describe("API仕様書 1.6 のエラーコード", () => {
       REPORT_ALREADY_EXISTS: 409,
       DUPLICATE_CUSTOMER_NAME: 409,
       CONFLICT: 409,
+      INTERNAL_ERROR: 500,
     });
-    expect(ERROR_CODES).toHaveLength(8);
+    expect(ERROR_CODES).toHaveLength(10);
   });
 });
 
@@ -42,7 +44,7 @@ describe("errorResponseSchema", () => {
 
   test("定義されていないエラーコードは受け付けない", () => {
     const result = errorResponseSchema.safeParse({
-      error: { code: "INTERNAL_ERROR", message: "x" },
+      error: { code: "TEAPOT", message: "x" },
     });
     expect(result.success).toBe(false);
   });
