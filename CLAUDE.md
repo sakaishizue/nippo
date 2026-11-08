@@ -59,6 +59,11 @@ APIテスト(データベースを使うテスト):
 - `pnpm dev`(ルート): API(ポート8080)と画面(ポート5173)を同時に起動する。画面の `/api` へのリクエストは API に転送する
 - `pnpm --filter @nippo/web build`: `dist/` にビルドする
 - 画面のURLは `src/screens.ts` と画面定義書「画面のURL」で管理する。ルーティングは `src/router.tsx`(React Router のデータモード)
+- 画面を使えるロールは `src/screens.ts` の `roles` で指定する。ルートの loader の `requireUser()`(`src/auth/guard.ts`)が、未ログインならログイン画面(`?redirect=` に元の画面)へ移動し、権限がなければ403画面を表示する
+- API は `api.get()` などで呼ぶ(`src/lib/api.ts`)。ベースURL `/api/v1`、更新系への CSRFトークンの付与を行い、エラーは `ApiError` を投げる。直接 `fetch` しない
+- ログイン中のユーザーは `useMe()`(`src/auth/me.ts`)。ログインの直後は `setMe()` で覚える。API が `401` を返すと、ログイン画面へ移動する(`src/main.tsx`)
+- `422` の項目のエラーは `applyServerErrors(error, setError)`(`src/lib/form-errors.ts`)で React Hook Form に反映する
+- ログイン後に戻る画面は、`safeRedirectPath()`(`src/auth/redirect.ts`)で他のサイトでないことを確かめてから使う
 - 部品は shadcn/ui。追加は `apps/web` で `pnpm dlx shadcn@4.23.0 add <部品名>` を実行し、`src/components/ui/` に置く。クラス名の結合は `cn()`(`src/lib/utils.ts`)
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
