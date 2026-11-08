@@ -32,6 +32,15 @@ API(`apps/api`、Hono):
 - テストは `createApp().request()` で API を呼ぶ
 - pnpm は公開から1日経っていない版をインストールしない(`minimumReleaseAge`)。除外設定は入れず、少し前の版を選ぶ
 
+データベース(PostgreSQL、Prisma 7):
+
+- スキーマは `apps/api/prisma/schema.prisma`、Prisma の CLI の設定は `apps/api/prisma.config.ts`。テーブル名とカラム名はスネークケース(`@@map`、`@map`)、TypeScript ではキャメルケース
+- クライアントは `apps/api/generated/prisma/` に生成する(Git に含めない)。`pnpm generate` で生成し、`pnpm typecheck` と `pnpm test` は実行前に自動で生成する
+- ローカルの DB: `docker compose up -d`(ルート)で起動する。Docker がない場合は `pnpm --filter @nippo/api exec prisma dev --detach` で代用し、表示されたURLを `DIRECT_URL` と `DATABASE_URL` に設定する
+- スキーマを変えたら `pnpm --filter @nippo/api db:migrate --name <変更内容>` でマイグレーションを作る。マイグレーションのファイルは手で書き換えない
+- 列挙値は `@nippo/shared` と一致させる(`apps/api/src/schema.test.ts` で確認する)
+- `prisma migrate reset` など、データを消す操作は利用者の同意なしに実行しない
+
 画面(`apps/web`、React + Vite):
 
 - `pnpm dev`(ルート): API(ポート8080)と画面(ポート5173)を同時に起動する。画面の `/api` へのリクエストは API に転送する

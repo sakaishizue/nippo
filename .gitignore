@@ -7,3 +7,6 @@ coverage/
 test-results/
 playwright-report/
 blob-report/
+
+# Prisma が生成するクライアント(pnpm install 時に生成する)
+apps/api/generated/

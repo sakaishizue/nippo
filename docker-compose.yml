@@ -1,0 +1,21 @@
+# ローカル開発用の PostgreSQL。メジャーバージョンは Neon のプロジェクトに合わせる
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: nippo
+      POSTGRES_PASSWORD: nippo
+      POSTGRES_DB: nippo
+      TZ: Asia/Tokyo
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nippo -d nippo"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  db-data:
