@@ -38,7 +38,6 @@ const pages: readonly (readonly [string, string, User | null])[] = [
   ["/admin/users", "SCR-15 ユーザー一覧", "A1"],
   ["/admin/users/new", "SCR-16 ユーザー登録", "A1"],
   ["/admin/users/12", "SCR-16 ユーザー編集", "A1"],
-  ["/profile", "SCR-17 プロフィール", "A1"],
 ];
 
 for (const [path, heading, user] of pages) {

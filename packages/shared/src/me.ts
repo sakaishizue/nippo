@@ -22,6 +22,22 @@ export const changePasswordSchema = z
   });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+/**
+ * プロフィール画面(SCR-17)のパスワード変更の入力。確認用との一致は画面だけで確かめる(API仕様書 PUT /me/password)
+ */
+export const changePasswordFormSchema = changePasswordSchema
+  .safeExtend({
+    new_password_confirmation: z
+      .string()
+      .min(1, { error: "確認のため、新しいパスワードをもう一度入力してください" }),
+  })
+  .refine(
+    (data) =>
+      data.new_password_confirmation === "" || data.new_password_confirmation === data.new_password,
+    { error: "新しいパスワードと一致しません", path: ["new_password_confirmation"] },
+  );
+export type ChangePasswordFormInput = z.infer<typeof changePasswordFormSchema>;
+
 /** GET /me と POST /auth/login のレスポンス */
 export const meSchema = z.object({
   id: z.number().int(),
