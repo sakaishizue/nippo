@@ -2,7 +2,19 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/*
+ * デザインの方針は画面定義書 3.5。色を変えたら styles/theme.test.ts でコントラスト比を確認する
+ * ダークモードには対応しない。部品の dark: は .dark の中だけで効くようにし、.dark は使わない
+ * (この行を消すと、OS が暗い配色のときに部品の一部だけが暗くなる)
+ */
 @custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* OS の標準フォント。Windows、iPhone・Mac、Android の順 */
+  --font-sans:
+    "Yu Gothic UI", Meiryo, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui,
+    sans-serif;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -20,9 +32,29 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-surface: var(--destructive-surface);
+  --color-destructive-border: var(--destructive-border);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-border: var(--warning-border);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-active: var(--header-active);
+  --color-header-border: var(--header-border);
+  --color-status-draft: var(--status-draft);
+  --color-status-draft-foreground: var(--status-draft-foreground);
+  --color-status-submitted: var(--status-submitted);
+  --color-status-submitted-foreground: var(--status-submitted-foreground);
+  --color-status-returned: var(--status-returned);
+  --color-status-returned-foreground: var(--status-returned-foreground);
+  --color-status-approved: var(--status-approved);
+  --color-status-approved-foreground: var(--status-approved-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -38,56 +70,68 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-}
+  color-scheme: light;
+  /* ボタンと入力欄は 8px(rounded-lg)、カードは rounded-xl */
+  --radius: 0.5rem;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  /* 画面の背景、カード、文字 */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* 基本色(藍) */
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --accent: #eef2ff;
+  --accent-foreground: #3730a3;
+  --ring: #6366f1;
+
+  /* 薄い面と補足の文字 */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+
+  /* 境界線と入力欄の枠(入力欄の枠は背景と 3:1 以上) */
+  --border: #e2e8f0;
+  --input: #64748b;
+
+  /* エラー、完了、警告(画面定義書 3.3) */
+  --destructive: #b91c1c;
+  --destructive-surface: #fef2f2;
+  --destructive-border: #fecaca;
+  --success: #166534;
+  --success-surface: #f0fdf4;
+  --success-border: #bbf7d0;
+  --warning: #92400e;
+  --warning-surface: #fffbeb;
+  --warning-border: #fde68a;
+
+  /* ヘッダー */
+  --header: #3730a3;
+  --header-foreground: #ffffff;
+  --header-active: #4f46e5;
+  --header-border: #a5b4fc;
+
+  /* 日報のステータスのラベル(背景と文字) */
+  --status-draft: #f1f5f9;
+  --status-draft-foreground: #334155;
+  --status-submitted: #dbeafe;
+  --status-submitted-foreground: #1e40af;
+  --status-returned: #ffedd5;
+  --status-returned-foreground: #9a3412;
+  --status-approved: #dcfce7;
+  --status-approved-foreground: #166534;
+
+  /* 作業時間集計の横棒グラフ */
+  --chart-1: #4338ca;
+  --chart-2: #6366f1;
+  --chart-3: #818cf8;
+  --chart-4: #a5b4fc;
+  --chart-5: #c7d2fe;
 }
 
 @layer base {
@@ -97,5 +141,6 @@
 
   body {
     @apply bg-background text-foreground;
+    line-height: 1.6;
   }
 }

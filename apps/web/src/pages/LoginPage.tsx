@@ -52,7 +52,7 @@ export function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center p-4">
-      <p className="text-center text-sm text-muted-foreground">営業日報システム</p>
+      <p className="text-center text-sm text-muted-foreground">営業日報</p>
       <h1 className="mt-1 mb-6 text-center text-xl font-bold">ログイン</h1>
       <form noValidate onSubmit={form.handleSubmit((input) => login.mutate(input))}>
         <FieldGroup>
