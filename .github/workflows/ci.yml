@@ -68,6 +68,24 @@ jobs:
     name: E2E tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 画面テストで起動する API が使う PostgreSQL
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nippo
+          POSTGRES_PASSWORD: nippo
+          POSTGRES_DB: nippo_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nippo -d nippo_e2e"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgres://nippo:nippo@localhost:5432/nippo_e2e
+      DIRECT_URL: postgres://nippo:nippo@localhost:5432/nippo_e2e
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -76,7 +94,11 @@ jobs:
           node-version-file: .node-version
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit msedge
-      - run: pnpm test:e2e --pass-with-no-tests
+      - run: pnpm --filter @nippo/api db:migrate:deploy
+      # テスト仕様書 3章のデータを入れる
+      - run: pnpm --filter @nippo/api db:seed
+      # Playwright が API と画面の開発サーバーを起動してから、画面テストを実行する
+      - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
