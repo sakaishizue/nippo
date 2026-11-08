@@ -19,7 +19,6 @@ const loginAs = async (page: Page, user: User) => {
 // 画面定義書の各画面のURLで、仮のページが開くことを確認する。画面ができたら各画面のテストに置き換える
 // ユーザーは、その画面を使えるロールの人(null はログインしない)
 const pages: readonly (readonly [string, string, User | null])[] = [
-  ["/login", "SCR-01 ログイン", null],
   ["/", "SCR-02 ホーム", "U1"],
   ["/reports", "SCR-03 日報一覧", "U1"],
   ["/reports/new", "SCR-04 日報入力", "U1"],
@@ -72,7 +71,7 @@ test.describe("ログイン状態と権限", () => {
   }) => {
     await page.goto("/reports?status=submitted");
     await expect(page).toHaveURL("/login?redirect=%2Freports%3Fstatus%3Dsubmitted");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("SCR-01 ログイン");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ログイン");
   });
 
   test("ログインしていない状態でホームを開くと、ログイン画面に移動する", async ({ page }) => {
