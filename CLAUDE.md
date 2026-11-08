@@ -30,6 +30,7 @@ API(`apps/api`、Hono):
 - 入力チェックは `validate()`(`src/validator.ts`)を使う。失敗すると `422 VALIDATION_ERROR` になる
 - ログは `log()`(`src/logger.ts`)で JSON を出す。`console.log` を直接使わない
 - テストは `createApp().request()` で API を呼ぶ
+- 営業日の判定は `isBusinessDay()`、`previousBusinessDay()`(`src/business-day.ts`)を使う。日付は日本時間の `YYYY-MM-DD` の文字列で渡す(`Date` を渡すとサーバーのタイムゾーンでずれるため)。祝日のデータは `@holiday-jp/holiday_jp` で、2050年まで入っている
 - pnpm は公開から1日経っていない版をインストールしない(`minimumReleaseAge`)。除外設定は入れず、少し前の版を選ぶ
 
 データベース(PostgreSQL、Prisma 7):
