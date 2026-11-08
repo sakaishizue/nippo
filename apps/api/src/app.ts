@@ -7,6 +7,7 @@ import { handleError, handleNotFound } from "./errors";
 import { requestLogger } from "./logger";
 import { loginRoutes, logoutRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
+import { meRoutes } from "./routes/me";
 
 // 入力チェックのメッセージを日本語にする
 z.config(z.locales.ja());
@@ -31,6 +32,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.use(authenticate({ db, secureCookie }));
   app.use(csrfProtection());
   app.route("/auth/logout", logoutRoutes({ db, secureCookie }));
+  app.route("/me", meRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);
