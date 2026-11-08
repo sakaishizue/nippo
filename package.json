@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@12.18.0",
   "scripts": {
+    "dev": "pnpm --parallel --filter @nippo/api --filter @nippo/web dev",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
