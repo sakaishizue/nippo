@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
     "@hookform/resolvers": "7.0.3",
     "@nippo/shared": "workspace:*",
     "@tanstack/react-query": "5.107.1",

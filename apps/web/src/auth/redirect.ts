@@ -1,3 +1,8 @@
+import type { Role } from "@nippo/shared";
+
+/** ログイン後に最初に開く画面(画面定義書 SCR-01)。一般と上長はホーム、管理者はユーザー一覧 */
+export const homePathFor = (role: Role): string => (role === "admin" ? "/admin/users" : "/");
+
 /** ログイン画面のURLと、ログイン後に戻る画面を渡すクエリの名前 */
 export const LOGIN_PATH = "/login";
 export const REDIRECT_PARAM = "redirect";

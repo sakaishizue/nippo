@@ -28,6 +28,23 @@
       }
     }
   },
+  "overrides": [
+    {
+      "includes": ["apps/web/src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useSemanticElements": "off",
+            "noLabelWithoutControl": "off"
+          },
+          "suspicious": {
+            "noDoubleEquals": "off",
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "double",

@@ -65,6 +65,8 @@ APIテスト(データベースを使うテスト):
 - `422` の項目のエラーは `applyServerErrors(error, setError)`(`src/lib/form-errors.ts`)で React Hook Form に反映する
 - ログイン後に戻る画面は、`safeRedirectPath()`(`src/auth/redirect.ts`)で他のサイトでないことを確かめてから使う
 - 部品は shadcn/ui。追加は `apps/web` で `pnpm dlx shadcn@4.23.0 add <部品名>` を実行し、`src/components/ui/` に置く。クラス名の結合は `cn()`(`src/lib/utils.ts`)
+  - 追加した部品が `import { cn } from "cn"` になり、npm の `cn` パッケージが依存に入ることがある。`@/lib/utils` に直し、`cn` パッケージは削除する。部品が使う `@base-ui/react` が依存に入っているかも確認する
+  - 生成された部品は手で直さない。Biome で引っかかるルールは、`biome.json` の `overrides` で `src/components/ui/` だけ無効にする
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
 - CI の「E2E tests」は、サービスコンテナの PostgreSQL にマイグレーションとシードを適用してから実行する。失敗すると、トレースとスクリーンショットを含む HTML のレポートを保存する

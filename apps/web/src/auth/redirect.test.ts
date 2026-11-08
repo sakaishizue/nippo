@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loginPathFor, safeRedirectPath } from "./redirect";
+import { homePathFor, loginPathFor, safeRedirectPath } from "./redirect";
 
 describe("loginPathFor", () => {
   it("元の画面のパス、クエリ、ハッシュを redirect に入れる", () => {
@@ -46,5 +46,13 @@ describe("safeRedirectPath", () => {
     "javascript:alert(1)",
   ])("%s は受け付けない", (value) => {
     expect(safeRedirectPath(value)).toBeNull();
+  });
+});
+
+describe("homePathFor", () => {
+  it("一般と上長はホーム、管理者はユーザー一覧", () => {
+    expect(homePathFor("member")).toBe("/");
+    expect(homePathFor("manager")).toBe("/");
+    expect(homePathFor("admin")).toBe("/admin/users");
   });
 });
