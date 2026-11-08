@@ -28,6 +28,31 @@
 - 権限のない画面のURLに直接アクセスした場合は、エラー画面(403)を表示する
 - 管理者には通知が発生しないため、通知一覧は表示しない
 
+### 画面のURL
+
+| 画面 | URL |
+| --- | --- |
+| SCR-01 ログイン | `/login` |
+| SCR-02 ホーム | `/` |
+| SCR-03 日報一覧 | `/reports` |
+| SCR-04 日報入力 | 新規 `/reports/new`、編集 `/reports/:id/edit` |
+| SCR-05 日報詳細 | `/reports/:id` |
+| SCR-06 承認待ち一覧 | `/approvals` |
+| SCR-07 作業時間集計 | `/summary` |
+| SCR-08 顧客一覧 | `/customers` |
+| SCR-09 顧客詳細 | `/customers/:id` |
+| SCR-10 顧客登録・編集 | 登録 `/customers/new`、編集 `/customers/:id/edit` |
+| SCR-11 商談一覧 | `/deals` |
+| SCR-12 商談詳細 | `/deals/:id` |
+| SCR-13 商談登録・編集 | 登録 `/deals/new`、編集 `/deals/:id/edit` |
+| SCR-14 通知一覧 | `/notifications` |
+| SCR-15 ユーザー一覧 | `/admin/users` |
+| SCR-16 ユーザー登録・編集 | 登録 `/admin/users/new`、編集 `/admin/users/:id` |
+| SCR-17 プロフィール | `/profile` |
+
+- 定義していないURLは「ページが見つかりません」を表示する
+- 検索条件などは、URLのクエリに保持する(3.4)
+
 ## 2. 画面遷移
 
 ヘッダーのメニューからは、ロールごとに利用できる画面へ直接移動できる。下図は主な流れのみを示す。
