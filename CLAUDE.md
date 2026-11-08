@@ -24,12 +24,13 @@ TypeScript の設定:
 API(`apps/api`、Hono):
 
 - `pnpm --filter @nippo/api dev`: 開発サーバー(ファイル監視付き)。`apps/api/.env.example` を `.env` にコピーして使う
-- `pnpm --filter @nippo/api build`: esbuild で `dist/server.js` の1ファイルにまとめる。`start` で起動する
-- ルートは `/api/v1` 配下。アプリの組み立ては `src/app.ts` の `createApp()`、起動は `src/server.ts`
+- `pnpm --filter @nippo/api build`: esbuild で `dist/server.js` の1ファイルにまとめる(設定は `build.mjs`)。`start` で起動する。ネイティブモジュールの `@node-rs/argon2` は、まとめずに実行時に node_modules から読み込む。CI でまとめたファイルを起動して確認している
+- ルートは `/api/v1` 配下。アプリの組み立ては `src/app.ts` の `createApp({ db, secureCookie })`、起動は `src/server.ts`
+- `/health` と `/auth/login` 以外のルートは、`app.ts` の認証とCSRFのミドルウェアより後に登録する。ログイン中のユーザーは `c.var.user`、セッションは `c.var.session`。ロールの制限は `requireRole("manager")`(`src/auth/middleware.ts`)
 - エラーは `AppError`(`src/errors.ts`)を投げる。ステータスコードはエラーコードから決まり、API仕様書 1.6 の形式で返る
 - 入力チェックは `validate()`(`src/validator.ts`)を使う。失敗すると `422 VALIDATION_ERROR` になる
 - ログは `log()`(`src/logger.ts`)で JSON を出す。`console.log` を直接使わない
-- テストは `createApp().request()` で API を呼ぶ
+- テストは `createApp().request()` で API を呼ぶ。ログインが必要な API は `loginAs(createTestApp(), users.U1)`(`src/testing/auth.ts`)で、Cookie と CSRFトークンを付けて呼ぶ。テストデータのユーザーのパスワードは `TEST_PASSWORD`(`password123`)で、開発用のシードでも同じ
 - 営業日の判定は `isBusinessDay()`、`previousBusinessDay()`(`src/business-day.ts`)を使う。日付は日本時間の `YYYY-MM-DD` の文字列で渡す(`Date` を渡すとサーバーのタイムゾーンでずれるため)。祝日のデータは `@holiday-jp/holiday_jp` で、2050年まで入っている
 - pnpm は公開から1日経っていない版をインストールしない(`minimumReleaseAge`)。除外設定は入れず、少し前の版を選ぶ
 

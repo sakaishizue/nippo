@@ -1,22 +1,29 @@
+import { hashPassword } from "../auth/password";
 import type { Db } from "../db";
 
 // テスト仕様書 3章のテストデータ。APIテストと開発用のシード(prisma/seed.ts)で共通に使う
 
-// パスワードのハッシュ化は Issue #9 で実装する。それまではログインできない値を入れておく
-export const TEST_PASSWORD_HASH = "!not-set";
+/** テストデータの全ユーザーのパスワード。開発用のデータベースでもこのパスワードでログインできる */
+export const TEST_PASSWORD = "password123";
+
+// ハッシュ化には時間がかかるため、プロセスごとに1回だけ計算する
+let testPasswordHash: Promise<string> | undefined;
 
 // 日報の日付。2026-11-02(月)から始まる週
 const day = (date: string) => new Date(`${date}T00:00:00Z`);
 const at = (dateTime: string) => new Date(dateTime);
 
 export const seedTestData = async (db: Db) => {
+  testPasswordHash ??= hashPassword(TEST_PASSWORD);
+  const passwordHash = await testPasswordHash;
+
   // 3.1 ユーザー
   const A1 = await db.user.create({
     data: {
       name: "管理 太郎",
       email: "a1@example.com",
       role: "admin",
-      passwordHash: TEST_PASSWORD_HASH,
+      passwordHash,
     },
   });
   const M1 = await db.user.create({
@@ -24,7 +31,7 @@ export const seedTestData = async (db: Db) => {
       name: "鈴木 一郎",
       email: "m1@example.com",
       role: "manager",
-      passwordHash: TEST_PASSWORD_HASH,
+      passwordHash,
     },
   });
   const M2 = await db.user.create({
@@ -32,12 +39,12 @@ export const seedTestData = async (db: Db) => {
       name: "高橋 次郎",
       email: "m2@example.com",
       role: "manager",
-      passwordHash: TEST_PASSWORD_HASH,
+      passwordHash,
     },
   });
   const member = (name: string, email: string, managerId: number, isActive = true) =>
     db.user.create({
-      data: { name, email, role: "member", managerId, isActive, passwordHash: TEST_PASSWORD_HASH },
+      data: { name, email, role: "member", managerId, isActive, passwordHash },
     });
   const U1 = await member("山田 太郎", "u1@example.com", M1.id);
   const U2 = await member("佐藤 花子", "u2@example.com", M1.id);

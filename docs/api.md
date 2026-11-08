@@ -18,9 +18,11 @@
 
 ### 1.2 認証
 
-- ログインAPIでセッションを開始し、以降はセッションCookie(`HttpOnly`、`Secure`、`SameSite=Lax`)で認証する
-- 更新系のリクエスト(POST、PUT、PATCH、DELETE)には、ヘッダー `X-CSRF-Token` を付ける。トークンは `GET /me` のレスポンスで返す。トークンがない、または不正な場合は `403 FORBIDDEN` を返す
+- ログインAPIでセッションを開始し、以降はセッションCookie(`nippo_session`、`HttpOnly`、`Secure`、`SameSite=Lax`、`Path=/`)で認証する
+- セッションの有効期限は、最後のアクセスから7日。アクセスのたびに延長する(データベースへの書き込みと Cookie の送り直しは、前回の延長から1時間以上経ったときにまとめて行う)。期限が切れたら `401` を返し、Cookie を消す
+- 更新系のリクエスト(POST、PUT、PATCH、DELETE)には、ヘッダー `X-CSRF-Token` を付ける。トークンは `GET /me` と `POST /auth/login` のレスポンスで返す。トークンがない、または不正な場合は `403 FORBIDDEN` を返す。`POST /auth/logout` にも必要
 - 無効化されたユーザーのセッションは、次のリクエストで無効にする
+- `/health` と `/auth/login` 以外は、ログインしていなければ、未定義のURLでも `401` を返す(どのURLがあるかを知られないため)
 
 ### 1.3 権限
 

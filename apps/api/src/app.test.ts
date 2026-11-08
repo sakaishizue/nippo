@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 import { createApp } from "./app";
+import { createDb } from "./db";
 import { AppError, handleError, handleNotFound } from "./errors";
 import { validate } from "./validator";
 
@@ -18,6 +19,10 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+// データベースを使わないテスト用。Prisma は問い合わせるまで接続しないため、接続先はダミーでよい
+const createUnitApp = () =>
+  createApp({ db: createDb("postgres://localhost:1/unused"), secureCookie: true });
 
 const parsedLogs = () => logs.map((line) => JSON.parse(line) as Record<string, unknown>);
 
@@ -50,13 +55,13 @@ const createTestApp = () => {
 
 describe("GET /api/v1/health", () => {
   test("200 を返す", async () => {
-    const res = await createApp().request("/api/v1/health");
+    const res = await createUnitApp().request("/api/v1/health");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok" });
   });
 
   test("リクエストIDをヘッダーに付け、構造化ログに出す", async () => {
-    const res = await createApp().request("/api/v1/health");
+    const res = await createUnitApp().request("/api/v1/health");
     const requestId = res.headers.get("X-Request-Id");
     expect(requestId).toBeTruthy();
 
@@ -76,11 +81,17 @@ describe("GET /api/v1/health", () => {
 });
 
 describe("存在しないURL", () => {
-  test.each(["/api/v1/unknown", "/api/v2/health", "/"])("%s は 404 NOT_FOUND", async (path) => {
-    const res = await createApp().request(path);
+  test.each(["/api/v2/health", "/"])("%s は 404 NOT_FOUND", async (path) => {
+    const res = await createUnitApp().request(path);
     expect(res.status).toBe(404);
     const body = errorResponseSchema.parse(await res.json());
     expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  test("/api/v1 の下は、ログインしていなければ未定義のURLでも 401", async () => {
+    const res = await createUnitApp().request("/api/v1/unknown");
+    expect(res.status).toBe(401);
+    expect(errorResponseSchema.parse(await res.json()).error.code).toBe("UNAUTHENTICATED");
   });
 });
 
@@ -117,7 +128,7 @@ describe("入力チェック", () => {
   });
 
   test("項目のメッセージは日本語", async () => {
-    createApp(); // 日本語のメッセージを設定する
+    createUnitApp(); // 日本語のメッセージを設定する
     const res = await post(JSON.stringify({ report_date: "2026-11-06", work_entries: [{}] }));
     const body = errorResponseSchema.parse(await res.json());
     expect(body.error.details?.[0]?.message).toMatch(/[ぁ-んァ-ン一-龥]/);
