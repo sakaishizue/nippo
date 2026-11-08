@@ -114,7 +114,7 @@ gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="servi
 `main` に対して、次のルールを設定する。
 
 - プルリクエストを必須にする
-- CI の「Lint and unit tests」と「E2E tests」の成功を必須にする
+- CI の「Lint and unit tests」、「Database migrations」、「E2E tests」の成功を必須にする
 
 ## 4. 本番へのリリース手順
 

@@ -7,17 +7,26 @@
     "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --sourcemap --outfile=dist/server.js",
     "start": "node --enable-source-maps dist/server.js",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status"
   },
   "dependencies": {
     "@hono/node-server": "2.1.6",
     "@hono/zod-validator": "0.9.1",
     "@nippo/shared": "workspace:*",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "hono": "4.13.16",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "dotenv": "18.0.9",
     "esbuild": "0.28.2",
+    "prisma": "7.10.1",
     "tsx": "4.23.15"
   }
 }

@@ -28,6 +28,25 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test:coverage
 
+  db:
+    name: Database migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DIRECT_URL: postgres://nippo:nippo@localhost:5432/nippo
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      # ローカル開発用の docker-compose.yml がそのまま動くことも、ここで確認する
+      - run: docker compose up -d --wait
+      - run: pnpm --filter @nippo/api db:migrate:deploy
+      # マイグレーションを適用した結果が schema.prisma と一致するか(マイグレーションの作り忘れがないか)
+      - run: pnpm --filter @nippo/api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
   e2e:
     name: E2E tests
     runs-on: ubuntu-latest

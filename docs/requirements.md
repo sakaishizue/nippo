@@ -144,8 +144,8 @@ erDiagram
     work_entries ||--o| visits : "詳細を持つ"
 
     users {
-        bigint id PK
-        bigint manager_id FK "上長(一般は必須、上長と管理者はNULL)"
+        int id PK
+        int manager_id FK "上長(一般は必須、上長と管理者はNULL)"
         string name "氏名"
         string email UK "ログインID"
         string password_hash "パスワードハッシュ"
@@ -156,7 +156,7 @@ erDiagram
     }
 
     customers {
-        bigint id PK
+        int id PK
         string name "顧客名"
         string address "住所"
         string phone "電話番号"
@@ -165,20 +165,20 @@ erDiagram
     }
 
     deals {
-        bigint id PK
-        bigint customer_id FK "顧客"
-        bigint owner_id FK "担当者"
+        int id PK
+        int customer_id FK "顧客"
+        int owner_id FK "担当者"
         string name "商談名"
         string stage "ステージ"
-        bigint amount "見込金額"
+        int amount "見込金額(円、上限は約21億円)"
         date expected_close_date "受注予定日"
         datetime created_at
         datetime updated_at
     }
 
     daily_reports {
-        bigint id PK
-        bigint user_id FK "作成者は一般のみ(日付と複合で一意)"
+        int id PK
+        int user_id FK "作成者は一般のみ(日付と複合で一意)"
         date report_date "対象日(作成者と複合で一意)"
         string status "draft / submitted / returned / approved"
         text reflection "所感"
@@ -189,44 +189,44 @@ erDiagram
     }
 
     work_entries {
-        bigint id PK
-        bigint report_id FK "日報"
-        bigint deal_id FK "商談(NULL可)"
+        int id PK
+        int report_id FK "日報"
+        int deal_id FK "商談(NULL可)"
         string category "visit / travel / document / meeting / other"
         int minutes "作業時間(分)"
         text note "メモ"
     }
 
     visits {
-        bigint id PK
-        bigint work_entry_id FK,UK "作業(1対1)"
-        bigint customer_id FK "顧客"
+        int id PK
+        int work_entry_id FK,UK "作業(1対1)"
+        int customer_id FK "顧客"
         string contact_name "面談相手"
         text content "訪問内容"
         text next_action "次回アクション"
     }
 
     report_reviews {
-        bigint id PK
-        bigint report_id FK "日報"
-        bigint reviewer_id FK "実施者"
+        int id PK
+        int report_id FK "日報"
+        int reviewer_id FK "実施者"
         string action "approved / returned"
         text reason "差し戻し理由"
         datetime created_at
     }
 
     report_comments {
-        bigint id PK
-        bigint report_id FK "日報"
-        bigint user_id FK "投稿者"
+        int id PK
+        int report_id FK "日報"
+        int user_id FK "投稿者"
         text body "本文"
         datetime created_at
     }
 
     notifications {
-        bigint id PK
-        bigint user_id FK "通知先"
-        bigint report_id FK "対象の日報(NULL可)"
+        int id PK
+        int user_id FK "通知先"
+        int report_id FK "対象の日報(NULL可)"
         string type "submitted / approved / returned / commented / reminder"
         string message "通知文"
         datetime read_at "既読日時(未読はNULL)"
@@ -235,7 +235,7 @@ erDiagram
 
     sessions {
         string id PK "セッションIDのハッシュ値"
-        bigint user_id FK "ログイン中のユーザー"
+        int user_id FK "ログイン中のユーザー"
         string csrf_token "CSRFトークン"
         datetime expires_at "有効期限"
         datetime created_at
@@ -263,4 +263,6 @@ erDiagram
 - **商談の参照**: 商談は `work_entries.deal_id` だけが持ち、訪問の商談は `work_entries` 経由で参照する。これにより訪問と作業で商談が食い違うことを防ぐ
 - **日報の一意制約**: `daily_reports` の `(user_id, report_date)` に複合ユニーク制約を設定する(F-11)
 - **ロールの制約**: 「日報の作成者は一般のみ」「承認者は作成者の上長のみ」はテーブル定義では表せないため、アプリ側で検証する
+- **ID の型**: ID は `int`(32ビット整数)とする。50人規模では十分な範囲で、API の JSON にそのまま変換できるため
+- **削除の扱い**: ユーザーと商談は削除しない運用のため、参照されているユーザーと商談の削除はデータベースで拒否する(RESTRICT)。日報を削除した場合は、作業、訪問、承認履歴、コメント、通知も削除する
 - **セッションの保存**: セッションIDはハッシュ値で保存し、データベースが漏えいしてもセッションを乗っ取られないようにする。ログアウト時と有効期限切れのセッションは削除する

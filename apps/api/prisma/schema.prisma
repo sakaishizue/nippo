@@ -1,0 +1,247 @@
+// 要件定義書 7章の ER図に対応するスキーマ。
+// テーブル名とカラム名はスネークケース(@@map、@map)、TypeScript ではキャメルケースで扱う。
+// 列挙値は @nippo/shared の値と一致させる(src/schema.test.ts で確認する)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  member
+  manager
+  admin
+
+  @@map("role")
+}
+
+enum ReportStatus {
+  draft
+  submitted
+  returned
+  approved
+
+  @@map("report_status")
+}
+
+enum WorkCategory {
+  visit
+  travel
+  document
+  meeting
+  other
+
+  @@map("work_category")
+}
+
+enum DealStage {
+  lead
+  proposal
+  negotiation
+  won
+  lost
+
+  @@map("deal_stage")
+}
+
+enum ReviewAction {
+  approved
+  returned
+
+  @@map("review_action")
+}
+
+enum NotificationType {
+  submitted
+  approved
+  returned
+  commented
+  reminder
+
+  @@map("notification_type")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  // 一般は必須、上長と管理者は NULL(アプリ側で検証する)
+  managerId    Int?     @map("manager_id")
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // ユーザーは削除しない運用のため、参照されているユーザーの削除は拒否する
+  manager       User?           @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  subordinates  User[]          @relation("UserManager")
+  reports       DailyReport[]
+  ownedDeals    Deal[]
+  reviews       ReportReview[]
+  comments      ReportComment[]
+  notifications Notification[]
+  sessions      Session[]
+
+  @@index([managerId])
+  @@map("users")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  deals  Deal[]
+  visits Visit[]
+
+  @@map("customers")
+}
+
+model Deal {
+  id                Int       @id @default(autoincrement())
+  customerId        Int       @map("customer_id")
+  ownerId           Int       @map("owner_id")
+  name              String
+  stage             DealStage
+  // 見込金額(円)。上限は約21億円(Int の範囲)
+  amount            Int?
+  expectedCloseDate DateTime? @map("expected_close_date") @db.Date
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  owner       User        @relation(fields: [ownerId], references: [id])
+  workEntries WorkEntry[]
+
+  @@index([customerId])
+  @@index([ownerId])
+  @@map("deals")
+}
+
+model DailyReport {
+  id          Int          @id @default(autoincrement())
+  // 作成者は一般のみ(アプリ側で検証する)
+  userId      Int          @map("user_id")
+  reportDate  DateTime     @map("report_date") @db.Date
+  status      ReportStatus @default(draft)
+  reflection  String?
+  nextPlan    String?      @map("next_plan")
+  submittedAt DateTime?    @map("submitted_at") @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user          User            @relation(fields: [userId], references: [id])
+  workEntries   WorkEntry[]
+  reviews       ReportReview[]
+  comments      ReportComment[]
+  notifications Notification[]
+
+  // 1ユーザーにつき1日1件(F-11)。担当者と期間での検索にも使う
+  @@unique([userId, reportDate])
+  @@index([status])
+  @@map("daily_reports")
+}
+
+model WorkEntry {
+  id       Int          @id @default(autoincrement())
+  reportId Int          @map("report_id")
+  dealId   Int?         @map("deal_id")
+  category WorkCategory
+  minutes  Int
+  note     String?
+
+  report DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  // 商談は削除しない運用のため、作業から参照されている商談の削除は拒否する
+  deal   Deal?       @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  visit  Visit?
+
+  @@index([reportId])
+  @@index([dealId])
+  @@map("work_entries")
+}
+
+model Visit {
+  id          Int     @id @default(autoincrement())
+  // 区分が visit の作業に1対1で紐づく。作業を削除すると訪問の詳細も削除する(日報の作業の置き換えのため)
+  workEntryId Int     @unique @map("work_entry_id")
+  customerId  Int     @map("customer_id")
+  contactName String? @map("contact_name")
+  // 下書きでは空でもよい。提出時に必須(アプリ側で検証する)
+  content     String?
+  nextAction  String? @map("next_action")
+
+  workEntry WorkEntry @relation(fields: [workEntryId], references: [id], onDelete: Cascade)
+  customer  Customer  @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@map("visits")
+}
+
+model ReportReview {
+  id         Int          @id @default(autoincrement())
+  reportId   Int          @map("report_id")
+  reviewerId Int          @map("reviewer_id")
+  action     ReviewAction
+  reason     String?
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  report   DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reviewer User        @relation(fields: [reviewerId], references: [id])
+
+  @@index([reportId])
+  @@map("report_reviews")
+}
+
+model ReportComment {
+  id        Int      @id @default(autoincrement())
+  reportId  Int      @map("report_id")
+  userId    Int      @map("user_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  report DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id])
+
+  @@index([reportId])
+  @@map("report_comments")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  reportId  Int?             @map("report_id")
+  type      NotificationType
+  message   String
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user   User         @relation(fields: [userId], references: [id])
+  report DailyReport? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  // 未読の件数と一覧の取得に使う
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model Session {
+  // セッションIDのハッシュ値。データベースが漏えいしてもセッションを乗っ取られないようにする
+  id        String   @id
+  userId    Int      @map("user_id")
+  csrfToken String   @map("csrf_token")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("sessions")
+}
