@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type TestProjectInlineConfiguration } from "vitest/config";
 
 // データベースを使うテスト(*.db.test.ts)の接続先。apps/api/.env.test か環境変数 TEST_DATABASE_URL で指定する
@@ -31,6 +32,8 @@ export default defineConfig({
     passWithNoTests: true,
     projects: [
       {
+        // 画面(apps/web)の import の `@/` を、Vite と同じく src に向ける
+        resolve: { alias: { "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)) } },
         test: {
           name: "unit",
           include: ["apps/*/src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
