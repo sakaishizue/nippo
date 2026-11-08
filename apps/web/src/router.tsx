@@ -2,39 +2,57 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { requireUser } from "./auth/guard";
+import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
-import { NotFoundPage } from "./pages/NotFoundPage";
+import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
-import { RouteErrorPage } from "./pages/RouteErrorPage";
-import { SCREENS, type Screen } from "./screens";
+import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
+import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
+
+const SCREENS: readonly Screen[] = ALL_SCREENS;
 
 // 作成済みの画面。ここにない画面は仮のページを表示する
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
 };
 
-const toRoute = (queryClient: QueryClient, screen: Screen): RouteObject => ({
+const elementOf = (screen: Screen) =>
+  PAGES[screen.path] ?? <PlaceholderPage screenId={screen.id} name={screen.name} />;
+
+// ログインが必要な画面。表示の前にロールを確認し、エラー(403 など)はヘッダーの下に表示する
+const toAppRoute = (queryClient: QueryClient, screen: Screen): RouteObject => ({
   path: screen.path,
-  element: PAGES[screen.path] ?? <PlaceholderPage screenId={screen.id} name={screen.name} />,
-  // ログインが必要な画面は、表示の前にログインとロールを確認する
-  loader: screen.public
-    ? undefined
-    : async ({ request }) => {
-        await requireUser(queryClient, request, screen.roles);
-        return null;
-      },
+  element: elementOf(screen),
+  errorElement: <RouteErrorPage />,
+  loader: async ({ request }) => {
+    await requireUser(queryClient, request, screen.roles);
+    return null;
+  },
 });
 
 export const createAppRouter = (queryClient: QueryClient) =>
   createBrowserRouter([
     {
-      // loader のエラー(403 など)を表示する
-      errorElement: <RouteErrorPage />,
+      errorElement: <RootErrorPage />,
       // 最初の表示で、ログインの確認が終わるまで表示する
       hydrateFallbackElement: <p className="p-4 text-muted-foreground">読み込み中…</p>,
       children: [
-        ...SCREENS.map((screen) => toRoute(queryClient, screen)),
-        { path: "*", element: <NotFoundPage /> },
+        ...SCREENS.filter((screen) => screen.public).map((screen) => ({
+          path: screen.path,
+          element: elementOf(screen),
+        })),
+        {
+          // ヘッダーとメニューの共通レイアウト。未ログインならログイン画面へ移動する
+          element: <AppLayout />,
+          loader: async ({ request }) => {
+            await requireUser(queryClient, request);
+            return null;
+          },
+          children: SCREENS.filter((screen) => !screen.public).map((screen) =>
+            toAppRoute(queryClient, screen),
+          ),
+        },
+        { path: "*", element: <StandaloneNotFoundPage /> },
       ],
     },
   ]);

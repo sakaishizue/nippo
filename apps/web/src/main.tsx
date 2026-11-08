@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router/dom";
 import { clearSession } from "./auth/me";
 import { LOGIN_PATH, loginPathFor } from "./auth/redirect";
+import { AppToaster } from "./components/notify";
 import { createQueryClient } from "./lib/query-client";
 import { createAppRouter } from "./router";
 
@@ -30,6 +31,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <AppToaster />
     </QueryClientProvider>
   </StrictMode>,
 );
