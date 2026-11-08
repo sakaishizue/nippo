@@ -71,6 +71,8 @@ test("プロフィールでパスワードを変更すると、新しいパス�
   page,
   request,
 }, testInfo) => {
+  // ログイン、パスワードのハッシュ化、画面の移動が多く、WebKit では30秒を超えることがあるため
+  test.slow();
   const admin = await asAdmin(request);
   const managers = await request.get("/api/v1/user-options?role=manager");
   const { items } = (await managers.json()) as { items: { id: number; name: string }[] };
@@ -115,6 +117,7 @@ test("プロフィールでパスワードを変更すると、新しいパス�
     await openMenu(page);
     await page.getByRole("button", { name: "ログアウト" }).filter({ visible: true }).click();
     await expect(page).toHaveURL("/login");
+    await expect(page.getByRole("heading", { name: "ログイン" })).toBeVisible();
 
     await page.getByLabel("メールアドレス").fill(email);
     await page.getByLabel("パスワード").fill(PASSWORD);

@@ -35,9 +35,6 @@ const pages: readonly (readonly [string, string, User | null])[] = [
   ["/deals/31", "SCR-12 商談詳細", "U1"],
   ["/deals/31/edit", "SCR-13 商談編集", "U1"],
   ["/notifications", "SCR-14 通知一覧", "U1"],
-  ["/admin/users", "SCR-15 ユーザー一覧", "A1"],
-  ["/admin/users/new", "SCR-16 ユーザー登録", "A1"],
-  ["/admin/users/12", "SCR-16 ユーザー編集", "A1"],
 ];
 
 for (const [path, heading, user] of pages) {

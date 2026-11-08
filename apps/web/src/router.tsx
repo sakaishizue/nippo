@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { requireUser } from "./auth/guard";
 import { AppLayout } from "./components/layout/AppLayout";
+import { UserCreatePage, UserEditPage } from "./pages/admin/UserFormPage";
+import { UsersPage } from "./pages/admin/UsersPage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -16,6 +18,9 @@ const SCREENS: readonly Screen[] = ALL_SCREENS;
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
   "/profile": <ProfilePage />,
+  "/admin/users": <UsersPage />,
+  "/admin/users/new": <UserCreatePage />,
+  "/admin/users/:id": <UserEditPage />,
 };
 
 const elementOf = (screen: Screen) =>

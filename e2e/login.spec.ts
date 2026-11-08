@@ -13,7 +13,7 @@ const fillAndSubmit = async (page: Page, email: string, password: string) => {
 const destinations = [
   ["U1", "u1@example.com", "/", "SCR-02 ホーム"],
   ["M1", "m1@example.com", "/", "SCR-02 ホーム"],
-  ["A1", "a1@example.com", "/admin/users", "SCR-15 ユーザー一覧"],
+  ["A1", "a1@example.com", "/admin/users", "ユーザー一覧"],
 ] as const;
 
 for (const [user, email, path, heading] of destinations) {
