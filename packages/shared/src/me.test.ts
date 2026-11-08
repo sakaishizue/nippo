@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { changePasswordSchema } from "./me";
+import { changePasswordFormSchema, changePasswordSchema } from "./me";
 
 const fieldsOf = (input: unknown) => {
   const result = changePasswordSchema.safeParse(input);
@@ -33,5 +33,45 @@ describe("changePasswordSchema", () => {
     expect(fieldsOf({ current_password: "", new_password: "newpass12" })).toEqual([
       "current_password",
     ]);
+  });
+});
+
+describe("changePasswordFormSchema", () => {
+  const issuesOf = (input: unknown) => {
+    const result = changePasswordFormSchema.safeParse(input);
+    return result.success
+      ? []
+      : result.error.issues.map((issue) => [issue.path.join("."), issue.message]);
+  };
+  const valid = {
+    current_password: "password123",
+    new_password: "newpass12",
+    new_password_confirmation: "newpass12",
+  };
+
+  test("確認用が新しいパスワードと一致すれば通る", () => {
+    expect(issuesOf(valid)).toEqual([]);
+  });
+
+  test("確認用が一致しなければ new_password_confirmation のエラー", () => {
+    expect(issuesOf({ ...valid, new_password_confirmation: "newpass13" })).toEqual([
+      ["new_password_confirmation", "新しいパスワードと一致しません"],
+    ]);
+  });
+
+  test("確認用が空なら、未入力のエラーだけを出す", () => {
+    expect(issuesOf({ ...valid, new_password_confirmation: "" })).toEqual([
+      ["new_password_confirmation", "確認のため、新しいパスワードをもう一度入力してください"],
+    ]);
+  });
+
+  test("API と同じチェックもする(現在と同じパスワード)", () => {
+    expect(
+      issuesOf({
+        current_password: "password123",
+        new_password: "password123",
+        new_password_confirmation: "password123",
+      }),
+    ).toEqual([["new_password", "現在のパスワードとは違うものにしてください"]]);
   });
 });

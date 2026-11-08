@@ -6,6 +6,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
 import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
 
@@ -14,6 +15,7 @@ const SCREENS: readonly Screen[] = ALL_SCREENS;
 // 作成済みの画面。ここにない画面は仮のページを表示する
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
+  "/profile": <ProfilePage />,
 };
 
 const elementOf = (screen: Screen) =>
