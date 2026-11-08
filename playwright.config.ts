@@ -14,7 +14,9 @@ export default defineConfig({
     baseURL: externalBaseUrl ?? "http://localhost:5173",
     locale: "ja-JP",
     timezoneId: "Asia/Tokyo",
-    trace: "on-first-retry",
+    // 失敗したテストのトレースとスクリーンショットを、HTML のレポートに含める
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     { name: "desktop-chrome", use: { ...devices["Desktop Chrome"] } },
@@ -22,13 +24,23 @@ export default defineConfig({
     { name: "iphone-safari", use: { ...devices["iPhone 15"] } },
     { name: "android-chrome", use: { ...devices["Pixel 7"] } },
   ],
-  // 画面の開発サーバーを起動する。API とデータベースの起動は Issue #7 で追加する
+  // API と画面の開発サーバーを起動する。データベースの接続先は API の DATABASE_URL(apps/api/.env か環境変数)
   webServer: externalBaseUrl
     ? undefined
-    : {
-        command: "pnpm --filter @nippo/web dev",
-        url: "http://localhost:5173",
-        reuseExistingServer: !isCI,
-        timeout: 120_000,
-      },
+    : [
+        {
+          name: "api",
+          command: "pnpm --filter @nippo/api dev",
+          url: "http://localhost:8080/api/v1/health",
+          reuseExistingServer: !isCI,
+          timeout: 120_000,
+        },
+        {
+          name: "web",
+          command: "pnpm --filter @nippo/web dev",
+          url: "http://localhost:5173",
+          reuseExistingServer: !isCI,
+          timeout: 120_000,
+        },
+      ],
 });

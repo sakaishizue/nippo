@@ -17,7 +17,7 @@ flowchart LR
 
 | ワークフロー | ファイル | 実行のきっかけ | 内容 |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm test:coverage`、`pnpm test:e2e` |
+| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行) |
 | Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする |
 | Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」) | `step=deploy` でトラフィックなしで本番にデプロイし、`step=promote` で切り替える |
 
@@ -132,6 +132,5 @@ gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="servi
 | 項目 | 内容 |
 | --- | --- |
 | `Dockerfile` | 画面のビルドとAPIをまとめたイメージを作る。追加するとステージングへのデプロイが動き出す |
-| CI の画面テスト | アプリの起動と、テスト用データベース(PostgreSQL のサービスコンテナ)を追加する |
 | マイグレーション | デプロイの前に、Prisma のマイグレーションを実行する手順を追加する |
 | 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する |

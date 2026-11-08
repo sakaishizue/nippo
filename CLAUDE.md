@@ -58,7 +58,8 @@ APIテスト(データベースを使うテスト):
 - 画面のURLは `src/screens.ts` と画面定義書「画面のURL」で管理する。ルーティングは `src/router.tsx`(React Router のデータモード)
 - 部品は shadcn/ui。追加は `apps/web` で `pnpm dlx shadcn@4.23.0 add <部品名>` を実行し、`src/components/ui/` に置く。クラス名の結合は `cn()`(`src/lib/utils.ts`)
 - import は `@/`(`src/` を指す)を使う
-- 画面テスト(`pnpm test:e2e`)は画面の開発サーバーを自動で起動する。起動済みならそれを使う
+- 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
+- CI の「E2E tests」は、サービスコンテナの PostgreSQL にマイグレーションとシードを適用してから実行する。失敗すると、トレースとスクリーンショットを含む HTML のレポートを保存する
 
 Gitフック(husky、設定は `.husky/`):
 
