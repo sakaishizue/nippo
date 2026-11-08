@@ -89,6 +89,21 @@ gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="servi
 
 - `--data-file=-` では、コマンドの実行後に接続文字列を貼り付けて入力を終える。接続文字列をコマンドの引数やファイルに残さない
 
+### 2.6 初期管理者の作成(要件定義書 F-04)
+
+画面からは管理者がいないとユーザーを登録できないため、ステージングと本番のそれぞれで、最初の管理者を一度だけコマンドで作る。マイグレーションを適用した後に、リポジトリを取得した手元の PC から実行する。
+
+```bash
+export DATABASE_URL="$(gcloud secrets versions access latest --secret=nippo-staging-database-url)"
+pnpm --filter @nippo/api create-admin --name "管理者の氏名" --email admin@example.com
+unset DATABASE_URL
+```
+
+- 本番では、シークレット名を `nippo-database-url` にする
+- パスワードはコマンドの実行後に画面で入力する(入力した文字は表示されない)。シェルの履歴に残らないよう、引数(`--password`)では指定できない
+- 端末がない環境では、環境変数 `ADMIN_PASSWORD` で渡せる。ただしコマンドの行に直接書くとシェルの履歴に残るため、通常は画面で入力する
+- 同じメールアドレスのユーザーがいるとエラーになる。2人目以降の管理者は、画面のユーザー管理から登録する
+
 ## 3. GitHub の設定
 
 ### 3.1 リポジトリの変数(Settings → Secrets and variables → Actions → Variables)
