@@ -31,6 +31,7 @@ API(`apps/api`、Hono):
 - 入力チェックは `validate()`(`src/validator.ts`)を使う。失敗すると `422 VALIDATION_ERROR` になる
 - ログは `log()`(`src/logger.ts`)で JSON を出す。`console.log` を直接使わない
 - テストは `createApp().request()` で API を呼ぶ。ログインが必要な API は `loginAs(createTestApp(), users.U1)`(`src/testing/auth.ts`)で、Cookie と CSRFトークンを付けて呼ぶ。テストデータのユーザーのパスワードは `TEST_PASSWORD`(`password123`)で、開発用のシードでも同じ
+- 通知は `createNotifications(tx, event)`(`src/notifications.ts`)で作る。通知先と通知文のルール(F-51〜54)はここにまとめてある。日報の状態の変更と同じ `db.$transaction(async (tx) => ...)` の中で、tx を渡して呼ぶ
 - 営業日の判定は `isBusinessDay()`、`previousBusinessDay()`(`src/business-day.ts`)を使う。日付は日本時間の `YYYY-MM-DD` の文字列で渡す(`Date` を渡すとサーバーのタイムゾーンでずれるため)。祝日のデータは `@holiday-jp/holiday_jp` で、2050年まで入っている
 - pnpm は公開から1日経っていない版をインストールしない(`minimumReleaseAge`)。除外設定は入れず、少し前の版を選ぶ
 
