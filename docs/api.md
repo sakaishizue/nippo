@@ -340,8 +340,12 @@ API が起動しているかを確認する。ログインは不要で、デー�
 | `work_entries[].note`     |      | 500文字以内                                                 |
 | `work_entries[].visit`    |      | `category` が `visit` の場合は必須、それ以外は `null`       |
 | `visit.customer_id`       | ○    |                                                             |
-| `visit.content`           |      | 下書きでは空でもよい。提出時に必須                          |
+| `visit.content`           |      | 下書きでは空でもよい。提出時に必須。2,000文字以内           |
 | `visit.contact_name`      |      | 100文字以内                                                 |
+| `visit.next_action`       |      | 2,000文字以内                                               |
+
+- 商談と訪問先の顧客が存在しない場合も `422`(`details` の項目は `work_entries[0].deal_id`、`work_entries[0].visit.customer_id` など)
+- 所感、翌日の予定、メモ、面談相手などは、空の文字列を送ると未入力(`null`)として保存する
 
 **レスポンス** `201`: `GET /reports/{id}` と同じ内容
 

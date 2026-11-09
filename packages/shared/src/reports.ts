@@ -73,3 +73,92 @@ export const reportDetailSchema = z.object({
   permissions: reportPermissionsSchema,
 });
 export type ReportDetail = z.infer<typeof reportDetailSchema>;
+
+// API仕様書 5章(日報)の入力。POST /reports と PUT /reports/{id} で同じ形
+
+export const REPORT_TEXT_MAX_LENGTH = 2000;
+export const WORK_NOTE_MAX_LENGTH = 500;
+export const CONTACT_NAME_MAX_LENGTH = 100;
+export const VISIT_TEXT_MAX_LENGTH = 2000;
+/** 1日の作業時間の合計の上限(分) */
+export const DAILY_MINUTES_MAX = 1440;
+
+/** 空の文字列は「入力なし」として null にする */
+const optionalText = (max: number, label: string) =>
+  z
+    .string()
+    .max(max, { error: `${label}は${max.toLocaleString("ja-JP")}文字以内で入力してください` })
+    .nullish()
+    .transform((value) => (value?.trim() ? value : null));
+
+const idSchema = (message: string) =>
+  z.number({ error: message }).int({ error: message }).positive({ error: message });
+
+export const visitInputSchema = z.object({
+  customer_id: idSchema("顧客を選択してください"),
+  contact_name: optionalText(CONTACT_NAME_MAX_LENGTH, "面談相手"),
+  // 下書きでは空でもよい。提出時に必須(POST /reports/{id}/submit)
+  content: optionalText(VISIT_TEXT_MAX_LENGTH, "訪問内容"),
+  next_action: optionalText(VISIT_TEXT_MAX_LENGTH, "次回アクション"),
+});
+
+export const workEntryInputSchema = z
+  .object({
+    category: workCategorySchema,
+    minutes: z
+      .number({ error: "1以上の整数を入力してください" })
+      .int({ error: "1以上の整数を入力してください" })
+      .min(1, { error: "1以上の整数を入力してください" }),
+    deal_id: idSchema("商談を選択してください")
+      .nullish()
+      .transform((value) => value ?? null),
+    note: optionalText(WORK_NOTE_MAX_LENGTH, "メモ"),
+    visit: visitInputSchema.nullish().transform((value) => value ?? null),
+  })
+  .check((ctx) => {
+    const { category, visit } = ctx.value;
+    // 訪問の詳細は、作業区分が訪問の行だけに付ける(F-33)
+    if (category === "visit" && visit === null) {
+      ctx.issues.push({
+        code: "custom",
+        message: "訪問の詳細を入力してください",
+        path: ["visit"],
+        input: visit,
+      });
+    }
+    if (category !== "visit" && visit !== null) {
+      ctx.issues.push({
+        code: "custom",
+        message: "訪問以外の作業には、訪問の詳細を付けられません",
+        path: ["visit"],
+        input: visit,
+      });
+    }
+  });
+export type WorkEntryInput = z.input<typeof workEntryInputSchema>;
+
+/**
+ * POST /reports と PUT /reports/{id} のリクエスト。
+ * 未来の日付と、訪問の商談の顧客が訪問先と一致するかは、API で確かめる(今日の日付とデータベースが必要なため)
+ */
+export const reportInputSchema = z
+  .object({
+    report_date: dateSchema,
+    reflection: optionalText(REPORT_TEXT_MAX_LENGTH, "所感"),
+    next_plan: optionalText(REPORT_TEXT_MAX_LENGTH, "翌日の予定"),
+    // 下書きでは空でもよい
+    work_entries: z.array(workEntryInputSchema).default([]),
+  })
+  .check((ctx) => {
+    const total = ctx.value.work_entries.reduce((sum, entry) => sum + entry.minutes, 0);
+    if (total > DAILY_MINUTES_MAX) {
+      ctx.issues.push({
+        code: "custom",
+        message: `1日の作業時間の合計は${DAILY_MINUTES_MAX.toLocaleString("ja-JP")}分以下にしてください`,
+        path: ["work_entries"],
+        input: ctx.value.work_entries,
+      });
+    }
+  });
+export type ReportInput = z.input<typeof reportInputSchema>;
+export type ReportInputData = z.output<typeof reportInputSchema>;
