@@ -3,6 +3,7 @@ import {
   type CustomerListItem,
   customerInputSchema,
   customerListQuerySchema,
+  paginationQuerySchema,
 } from "@nippo/shared";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -12,6 +13,7 @@ import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
 import { validate } from "../validator";
+import { findVisitHistory, toCustomerVisit } from "../visits";
 
 type Options = { db: Db };
 
@@ -74,63 +76,83 @@ export const customersRoutes = ({ db }: Options) => {
     }
   };
 
-  return new Hono<AuthEnv>()
-    .get("/", validate("query", customerListQuerySchema), async (c) => {
-      const { q, page, per_page } = c.req.valid("query");
-      const where: Prisma.CustomerWhereInput = q
-        ? { name: { contains: q, mode: "insensitive" } }
-        : {};
-      const [customers, total] = await db.$transaction([
-        db.customer.findMany({
-          where,
-          include: { _count: { select: { deals: true } } },
-          orderBy: [{ name: "asc" }, { id: "asc" }],
-          skip: (page - 1) * per_page,
-          take: per_page,
-        }),
-        db.customer.count({ where }),
-      ]);
-      const lastVisits = await lastVisitedOn(customers.map((customer) => customer.id));
-      const items: CustomerListItem[] = customers.map((customer) => ({
-        id: customer.id,
-        name: customer.name,
-        address: customer.address,
-        phone: customer.phone,
-        deal_count: customer._count.deals,
-        last_visited_on: lastVisits.get(customer.id) ?? null,
-      }));
-      return c.json({ items, pagination: { page, per_page, total } });
-    })
+  return (
+    new Hono<AuthEnv>()
+      .get("/", validate("query", customerListQuerySchema), async (c) => {
+        const { q, page, per_page } = c.req.valid("query");
+        const where: Prisma.CustomerWhereInput = q
+          ? { name: { contains: q, mode: "insensitive" } }
+          : {};
+        const [customers, total] = await db.$transaction([
+          db.customer.findMany({
+            where,
+            include: { _count: { select: { deals: true } } },
+            orderBy: [{ name: "asc" }, { id: "asc" }],
+            skip: (page - 1) * per_page,
+            take: per_page,
+          }),
+          db.customer.count({ where }),
+        ]);
+        const lastVisits = await lastVisitedOn(customers.map((customer) => customer.id));
+        const items: CustomerListItem[] = customers.map((customer) => ({
+          id: customer.id,
+          name: customer.name,
+          address: customer.address,
+          phone: customer.phone,
+          deal_count: customer._count.deals,
+          last_visited_on: lastVisits.get(customer.id) ?? null,
+        }));
+        return c.json({ items, pagination: { page, per_page, total } });
+      })
 
-    .post("/", validate("json", customerInputSchema), async (c) => {
-      const { name, address, phone, confirm_duplicate } = c.req.valid("json");
-      await assertNameAvailable(name, confirm_duplicate);
-      const { id } = await db.customer.create({
-        data: { name, address, phone },
-        select: { id: true },
-      });
-      return c.json(await findDetail(id), 201);
-    })
-
-    .get("/:id", validate("param", idParamSchema), async (c) => {
-      const detail = await findDetail(c.req.valid("param").id);
-      if (!detail) throw NOT_FOUND();
-      return c.json(detail);
-    })
-
-    .put(
-      "/:id",
-      validate("param", idParamSchema),
-      validate("json", customerInputSchema),
-      async (c) => {
-        const { id } = c.req.valid("param");
+      .post("/", validate("json", customerInputSchema), async (c) => {
         const { name, address, phone, confirm_duplicate } = c.req.valid("json");
-        const exists = await db.customer.findUnique({ where: { id }, select: { id: true } });
-        if (!exists) throw NOT_FOUND();
-        // 名前の重複は、自分自身を除いて確かめる(CUS-04)
-        await assertNameAvailable(name, confirm_duplicate, id);
-        await db.customer.update({ where: { id }, data: { name, address, phone } });
-        return c.json(await findDetail(id));
-      },
-    );
+        await assertNameAvailable(name, confirm_duplicate);
+        const { id } = await db.customer.create({
+          data: { name, address, phone },
+          select: { id: true },
+        });
+        return c.json(await findDetail(id), 201);
+      })
+
+      .get("/:id", validate("param", idParamSchema), async (c) => {
+        const detail = await findDetail(c.req.valid("param").id);
+        if (!detail) throw NOT_FOUND();
+        return c.json(detail);
+      })
+
+      // 訪問履歴(F-24)。提出済みと承認済みの日報の訪問を、全員に共有する
+      .get(
+        "/:id/visits",
+        validate("param", idParamSchema),
+        validate("query", paginationQuerySchema),
+        async (c) => {
+          const { id } = c.req.valid("param");
+          const exists = await db.customer.findUnique({ where: { id }, select: { id: true } });
+          if (!exists) throw NOT_FOUND();
+          const { visits, pagination } = await findVisitHistory(
+            db,
+            { customerId: id },
+            c.req.valid("query"),
+          );
+          return c.json({ items: visits.map(toCustomerVisit), pagination });
+        },
+      )
+
+      .put(
+        "/:id",
+        validate("param", idParamSchema),
+        validate("json", customerInputSchema),
+        async (c) => {
+          const { id } = c.req.valid("param");
+          const { name, address, phone, confirm_duplicate } = c.req.valid("json");
+          const exists = await db.customer.findUnique({ where: { id }, select: { id: true } });
+          if (!exists) throw NOT_FOUND();
+          // 名前の重複は、自分自身を除いて確かめる(CUS-04)
+          await assertNameAvailable(name, confirm_duplicate, id);
+          await db.customer.update({ where: { id }, data: { name, address, phone } });
+          return c.json(await findDetail(id));
+        },
+      )
+  );
 };
