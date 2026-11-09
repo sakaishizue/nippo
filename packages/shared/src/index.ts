@@ -1,4 +1,5 @@
 export * from "./auth";
+export * from "./customers";
 export * from "./datetime";
 export * from "./enums";
 export * from "./errors";

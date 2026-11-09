@@ -6,6 +6,7 @@ import type { Db } from "./db";
 import { handleError, handleNotFound } from "./errors";
 import { requestLogger } from "./logger";
 import { loginRoutes, logoutRoutes } from "./routes/auth";
+import { customersRoutes } from "./routes/customers";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
 import { userOptionsRoutes, usersRoutes } from "./routes/users";
@@ -36,6 +37,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.route("/me", meRoutes({ db }));
   app.route("/users", usersRoutes({ db }));
   app.route("/user-options", userOptionsRoutes({ db }));
+  app.route("/customers", customersRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);
