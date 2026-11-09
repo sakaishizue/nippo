@@ -5,6 +5,9 @@ import { requireUser } from "./auth/guard";
 import { AppLayout } from "./components/layout/AppLayout";
 import { UserCreatePage, UserEditPage } from "./pages/admin/UserFormPage";
 import { UsersPage } from "./pages/admin/UsersPage";
+import { CustomerDetailPage } from "./pages/customers/CustomerDetailPage";
+import { CustomerCreatePage, CustomerEditPage } from "./pages/customers/CustomerFormPage";
+import { CustomersPage } from "./pages/customers/CustomersPage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -21,6 +24,10 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/admin/users": <UsersPage />,
   "/admin/users/new": <UserCreatePage />,
   "/admin/users/:id": <UserEditPage />,
+  "/customers": <CustomersPage />,
+  "/customers/new": <CustomerCreatePage />,
+  "/customers/:id": <CustomerDetailPage />,
+  "/customers/:id/edit": <CustomerEditPage />,
 };
 
 const elementOf = (screen: Screen) =>
