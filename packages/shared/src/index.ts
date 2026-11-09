@@ -7,5 +7,6 @@ export * from "./errors";
 export * from "./format";
 export * from "./me";
 export * from "./pagination";
+export * from "./reports";
 export * from "./users";
 export * from "./visits";

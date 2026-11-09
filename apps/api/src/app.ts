@@ -10,6 +10,7 @@ import { customersRoutes } from "./routes/customers";
 import { dealsRoutes } from "./routes/deals";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { reportsRoutes } from "./routes/reports";
 import { userOptionsRoutes, usersRoutes } from "./routes/users";
 
 // 入力チェックのメッセージを日本語にする
@@ -40,6 +41,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.route("/user-options", userOptionsRoutes({ db }));
   app.route("/customers", customersRoutes({ db }));
   app.route("/deals", dealsRoutes({ db }));
+  app.route("/reports", reportsRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);
