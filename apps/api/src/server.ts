@@ -6,7 +6,7 @@ import { log } from "./logger";
 
 const env = loadEnv();
 const app = createApp({
-  db: createDb(env.DATABASE_URL),
+  db: createDb(env.DATABASE_URL, env.DATABASE_POOL_MAX),
   // ローカル開発は HTTP のため、Secure を付けると Cookie が送られない
   secureCookie: env.NODE_ENV !== "development",
 });

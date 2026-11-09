@@ -26,10 +26,6 @@ const pages: readonly (readonly [string, string, User | null])[] = [
   ["/reports/100", "SCR-05 日報詳細", "U1"],
   ["/approvals", "SCR-06 承認待ち一覧", "M1"],
   ["/summary", "SCR-07 作業時間集計", "M1"],
-  ["/deals", "SCR-11 商談一覧", "M1"],
-  ["/deals/new", "SCR-13 商談登録", "U1"],
-  ["/deals/31", "SCR-12 商談詳細", "U1"],
-  ["/deals/31/edit", "SCR-13 商談編集", "U1"],
   ["/notifications", "SCR-14 通知一覧", "U1"],
 ];
 

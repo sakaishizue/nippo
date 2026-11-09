@@ -8,6 +8,9 @@ import { UsersPage } from "./pages/admin/UsersPage";
 import { CustomerDetailPage } from "./pages/customers/CustomerDetailPage";
 import { CustomerCreatePage, CustomerEditPage } from "./pages/customers/CustomerFormPage";
 import { CustomersPage } from "./pages/customers/CustomersPage";
+import { DealDetailPage } from "./pages/deals/DealDetailPage";
+import { DealCreatePage, DealEditPage } from "./pages/deals/DealFormPage";
+import { DealsPage } from "./pages/deals/DealsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -28,6 +31,10 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/customers/new": <CustomerCreatePage />,
   "/customers/:id": <CustomerDetailPage />,
   "/customers/:id/edit": <CustomerEditPage />,
+  "/deals": <DealsPage />,
+  "/deals/new": <DealCreatePage />,
+  "/deals/:id": <DealDetailPage />,
+  "/deals/:id/edit": <DealEditPage />,
 };
 
 const elementOf = (screen: Screen) =>

@@ -4,6 +4,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   DATABASE_URL: z.string().min(1),
+  // データベースへの同時接続数の上限。ローカルの prisma dev を使うときだけ 1 にする(省略時は pg の既定)
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).optional(),
 });
 export type Env = z.infer<typeof envSchema>;
 

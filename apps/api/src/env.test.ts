@@ -10,6 +10,11 @@ describe("loadEnv", () => {
     });
   });
 
+  test("DATABASE_POOL_MAX は省略でき、指定すると数値に変換する", () => {
+    expect(loadEnv({ DATABASE_URL: "x" }).DATABASE_POOL_MAX).toBeUndefined();
+    expect(loadEnv({ DATABASE_URL: "x", DATABASE_POOL_MAX: "1" }).DATABASE_POOL_MAX).toBe(1);
+  });
+
   test("PORT は数値に変換する", () => {
     expect(loadEnv({ DATABASE_URL: "x", PORT: "3000" }).PORT).toBe(3000);
   });
@@ -22,6 +27,8 @@ describe("loadEnv", () => {
     ["PORT", "abc"],
     ["PORT", "70000"],
     ["NODE_ENV", "staging"],
+    ["DATABASE_POOL_MAX", "0"],
+    ["DATABASE_POOL_MAX", "abc"],
   ])("%s=%s はエラーになる", (key, value) => {
     expect(() => loadEnv({ DATABASE_URL: "x", [key]: value })).toThrow(new RegExp(key));
   });
