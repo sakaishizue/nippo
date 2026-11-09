@@ -38,7 +38,7 @@ API(`apps/api`、Hono):
 
 - スキーマは `apps/api/prisma/schema.prisma`、Prisma の CLI の設定は `apps/api/prisma.config.ts`。テーブル名とカラム名はスネークケース(`@@map`、`@map`)、TypeScript ではキャメルケース
 - クライアントは `apps/api/generated/prisma/` に生成する(Git に含めない)。`pnpm generate` で生成し、`pnpm typecheck` と `pnpm test` は実行前に自動で生成する
-- ローカルの DB: `docker compose up -d`(ルート)で起動する。Docker がない場合は `pnpm --filter @nippo/api exec prisma dev --detach` で代用し、表示されたURLを `DIRECT_URL` と `DATABASE_URL` に設定する
+- ローカルの DB: `docker compose up -d`(ルート)で起動する。Docker がない場合は `pnpm --filter @nippo/api exec prisma dev --detach` で代用し、表示されたURLを `DIRECT_URL` と `DATABASE_URL` に設定する。`prisma dev` は同時接続に対応しないため、`apps/api/.env` に `DATABASE_POOL_MAX=1` も設定する(設定しないと、画面が API を並行して呼んだときに「bind message supplies ... parameters」などで 500 になる)
 - スキーマを変えたら `pnpm --filter @nippo/api db:migrate --name <変更内容>` でマイグレーションを作る。マイグレーションのファイルは手で書き換えない
 - 列挙値は `@nippo/shared` と一致させる(`apps/api/src/schema.test.ts` で確認する)
 - `prisma migrate reset` など、データを消す操作は利用者の同意なしに実行しない
@@ -67,10 +67,13 @@ APIテスト(データベースを使うテスト):
 - 部品は shadcn/ui。追加は `apps/web` で `pnpm dlx shadcn@4.23.0 add <部品名>` を実行し、`src/components/ui/` に置く。クラス名の結合は `cn()`(`src/lib/utils.ts`)
   - 追加した部品が `import { cn } from "cn"` になり、npm の `cn` パッケージが依存に入ることがある。`@/lib/utils` に直し、`cn` パッケージは削除する。部品が使う `@base-ui/react` が依存に入っているかも確認する
   - 生成された部品は手で直さない。Biome で引っかかるルールは、`biome.json` の `overrides` で `src/components/ui/` だけ無効にする
-  - 例外として、`button.tsx`、`input.tsx`、`native-select.tsx` の既定の高さは 44px(`h-11`)に変えてある(画面定義書 3.2)。部品を追加するときに上書き(`--overwrite`)しない
+  - 例外として、`button.tsx`、`input.tsx`、`native-select.tsx` の既定の高さは 44px(`h-11`)に変えてある(画面定義書 3.2)。追加する部品がこれらに依存すると、上書きするかを聞かれて止まる。その場合は `--yes --overwrite` で追加し、`git checkout -- src/components/ui/button.tsx src/components/ui/input.tsx` などで変更前に戻す
+  - 生成された部品の高さを変えたいときは、部品は直さず、使う側で `className="h-11"` を渡す(例: `CustomerCombobox`)
 - 色は画面定義書 3.5 のテーマ変数(`bg-primary`、`text-muted-foreground`、`bg-status-returned` など)を使い、色の値を直接書かない
 - 共通の部品: レイアウトは `components/layout/`(ログインが必要な画面はルーターで `AppLayout` の中に入る)。完了メッセージは `notifySuccess()`(`components/notify.tsx`)、確認ダイアログは `ConfirmDialog`、一覧は `DataList`(PC は表、スマホはカード)と `Pagination`、数値の入力欄は `NumberInput`(数字キーボード)
 - 一覧の検索条件とページは URL のクエリに持つ。`useListSearch()`(`lib/use-list-search.ts`)で読み書きする
+- 顧客の「選択(検索付き)」は `CustomerCombobox`、顧客の登録・編集のフォームは `CustomerForm`(画面を移動しないため、ダイアログにも置ける)、訪問履歴は `VisitHistory`
+- 日付と金額の表示は `formatDate()`(2026年11月4日(水))、`formatYen()`(3,000,000円)、時間は `formatMinutes()`(`@nippo/shared`)
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
 - CI の「E2E tests」は、サービスコンテナの PostgreSQL にマイグレーションとシードを適用してから実行する。失敗すると、トレースとスクリーンショットを含む HTML のレポートを保存する

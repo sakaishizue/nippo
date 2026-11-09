@@ -35,6 +35,7 @@
         "rules": {
           "a11y": {
             "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off",
             "noLabelWithoutControl": "off"
           },
           "suspicious": {
