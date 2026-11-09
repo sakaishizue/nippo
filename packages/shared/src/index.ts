@@ -8,3 +8,4 @@ export * from "./format";
 export * from "./me";
 export * from "./pagination";
 export * from "./users";
+export * from "./visits";

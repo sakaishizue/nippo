@@ -3,6 +3,7 @@ import {
   type DealResponse,
   dealInputSchema,
   dealListQuerySchema,
+  paginationQuerySchema,
 } from "@nippo/shared";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -12,6 +13,7 @@ import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
 import { validate } from "../validator";
+import { findVisitHistory, toDealVisit } from "../visits";
 
 type Options = { db: Db };
 
@@ -72,80 +74,105 @@ export const dealsRoutes = ({ db }: Options) => {
     }
   };
 
-  return new Hono<AuthEnv>()
-    .get("/", validate("query", dealListQuerySchema), async (c) => {
-      const { q, customer_id, owner_id, stage, page, per_page } = c.req.valid("query");
-      const where: Prisma.DealWhereInput = {
-        ...(q && { name: { contains: q, mode: "insensitive" } }),
-        ...(customer_id !== undefined && { customerId: customer_id }),
-        ...(owner_id !== undefined && { ownerId: owner_id }),
-        ...(stage && stage.length > 0 && { stage: { in: stage } }),
-      };
-      const [deals, total] = await db.$transaction([
-        db.deal.findMany({
-          where,
-          include: withRefs,
-          // 登録の新しい順
-          orderBy: { id: "desc" },
-          skip: (page - 1) * per_page,
-          take: per_page,
-        }),
-        db.deal.count({ where }),
-      ]);
-      return c.json({ items: deals.map(toDealResponse), pagination: { page, per_page, total } });
-    })
+  return (
+    new Hono<AuthEnv>()
+      .get("/", validate("query", dealListQuerySchema), async (c) => {
+        const { q, customer_id, owner_id, stage, page, per_page } = c.req.valid("query");
+        const where: Prisma.DealWhereInput = {
+          ...(q && { name: { contains: q, mode: "insensitive" } }),
+          ...(customer_id !== undefined && { customerId: customer_id }),
+          ...(owner_id !== undefined && { ownerId: owner_id }),
+          ...(stage && stage.length > 0 && { stage: { in: stage } }),
+        };
+        const [deals, total] = await db.$transaction([
+          db.deal.findMany({
+            where,
+            include: withRefs,
+            // 登録の新しい順
+            orderBy: { id: "desc" },
+            skip: (page - 1) * per_page,
+            take: per_page,
+          }),
+          db.deal.count({ where }),
+        ]);
+        return c.json({ items: deals.map(toDealResponse), pagination: { page, per_page, total } });
+      })
 
-    .post("/", validate("json", dealInputSchema), async (c) => {
-      const input = c.req.valid("json");
-      await assertCustomerExists(input.customer_id);
-      await assertValidOwner(input.owner_id);
-      const { id } = await db.deal.create({
-        data: {
-          customerId: input.customer_id,
-          name: input.name,
-          ownerId: input.owner_id,
-          stage: input.stage,
-          amount: input.amount,
-          expectedCloseDate: toDbDate(input.expected_close_date),
-        },
-        select: { id: true },
-      });
-      return c.json(await findDetail(id), 201);
-    })
-
-    .get("/:id", validate("param", idParamSchema), async (c) => {
-      const detail = await findDetail(c.req.valid("param").id);
-      if (!detail) throw NOT_FOUND();
-      return c.json(detail);
-    })
-
-    .put("/:id", validate("param", idParamSchema), validate("json", dealInputSchema), async (c) => {
-      const { id } = c.req.valid("param");
-      const input = c.req.valid("json");
-      const deal = await db.deal.findUnique({ where: { id } });
-      if (!deal) throw NOT_FOUND();
-
-      if (input.customer_id !== deal.customerId) {
+      .post("/", validate("json", dealInputSchema), async (c) => {
+        const input = c.req.valid("json");
         await assertCustomerExists(input.customer_id);
-        // 訪問記録の顧客と食い違うため、訪問記録がある商談の顧客は変えられない(DEAL-06)
-        if (await hasVisits(id)) {
-          throw new AppError("CONFLICT", "訪問記録がある商談は、顧客を変更できません");
-        }
-      }
-      // 担当者を変えるときだけ確かめる。担当者が後から無効になっても、他の項目は更新できるように
-      if (input.owner_id !== deal.ownerId) await assertValidOwner(input.owner_id);
+        await assertValidOwner(input.owner_id);
+        const { id } = await db.deal.create({
+          data: {
+            customerId: input.customer_id,
+            name: input.name,
+            ownerId: input.owner_id,
+            stage: input.stage,
+            amount: input.amount,
+            expectedCloseDate: toDbDate(input.expected_close_date),
+          },
+          select: { id: true },
+        });
+        return c.json(await findDetail(id), 201);
+      })
 
-      await db.deal.update({
-        where: { id },
-        data: {
-          customerId: input.customer_id,
-          name: input.name,
-          ownerId: input.owner_id,
-          stage: input.stage,
-          amount: input.amount,
-          expectedCloseDate: toDbDate(input.expected_close_date),
+      .get("/:id", validate("param", idParamSchema), async (c) => {
+        const detail = await findDetail(c.req.valid("param").id);
+        if (!detail) throw NOT_FOUND();
+        return c.json(detail);
+      })
+
+      // 訪問履歴(F-24)。作業に紐づく商談がこの商談の訪問を返す。商談の代わりに訪問先の顧客を返す
+      .get(
+        "/:id/visits",
+        validate("param", idParamSchema),
+        validate("query", paginationQuerySchema),
+        async (c) => {
+          const { id } = c.req.valid("param");
+          const exists = await db.deal.findUnique({ where: { id }, select: { id: true } });
+          if (!exists) throw NOT_FOUND();
+          const { visits, pagination } = await findVisitHistory(
+            db,
+            { dealId: id },
+            c.req.valid("query"),
+          );
+          return c.json({ items: visits.map(toDealVisit), pagination });
         },
-      });
-      return c.json(await findDetail(id));
-    });
+      )
+
+      .put(
+        "/:id",
+        validate("param", idParamSchema),
+        validate("json", dealInputSchema),
+        async (c) => {
+          const { id } = c.req.valid("param");
+          const input = c.req.valid("json");
+          const deal = await db.deal.findUnique({ where: { id } });
+          if (!deal) throw NOT_FOUND();
+
+          if (input.customer_id !== deal.customerId) {
+            await assertCustomerExists(input.customer_id);
+            // 訪問記録の顧客と食い違うため、訪問記録がある商談の顧客は変えられない(DEAL-06)
+            if (await hasVisits(id)) {
+              throw new AppError("CONFLICT", "訪問記録がある商談は、顧客を変更できません");
+            }
+          }
+          // 担当者を変えるときだけ確かめる。担当者が後から無効になっても、他の項目は更新できるように
+          if (input.owner_id !== deal.ownerId) await assertValidOwner(input.owner_id);
+
+          await db.deal.update({
+            where: { id },
+            data: {
+              customerId: input.customer_id,
+              name: input.name,
+              ownerId: input.owner_id,
+              stage: input.stage,
+              amount: input.amount,
+              expectedCloseDate: toDbDate(input.expected_close_date),
+            },
+          });
+          return c.json(await findDetail(id));
+        },
+      )
+  );
 };
