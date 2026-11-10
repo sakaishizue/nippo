@@ -1,4 +1,4 @@
-import { reportInputSchema, reportSubmitIssues } from "@nippo/shared";
+import { reportInputSchema, reportListQuerySchema, reportSubmitIssues } from "@nippo/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, requireRole } from "../auth/middleware";
@@ -8,6 +8,7 @@ import type { Db } from "../db";
 import { AppError } from "../errors";
 import { createNotifications } from "../notifications";
 import { findReportDetail } from "../reports/detail";
+import { searchReports } from "../reports/search";
 import {
   assertNotFuture,
   assertReferences,
@@ -64,6 +65,11 @@ export const reportsRoutes = ({ db }: Options) =>
       }
       return c.json(await findReportDetail(db, id, user), 201);
     })
+
+    // 日報の検索(F-14)。閲覧範囲の日報だけを返す
+    .get("/", validate("query", reportListQuerySchema), async (c) =>
+      c.json(await searchReports(db, c.var.user, c.req.valid("query"))),
+    )
 
     // `/reports/pending` などと区別するため、ID は数字だけ
     .get("/:id{[0-9]+}", validate("param", idParamSchema), async (c) => {
