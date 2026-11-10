@@ -162,3 +162,40 @@ export const reportInputSchema = z
   });
 export type ReportInput = z.input<typeof reportInputSchema>;
 export type ReportInputData = z.output<typeof reportInputSchema>;
+
+/** 提出時のチェックに使う日報の項目 */
+export type SubmittableReport = {
+  reflection: string | null;
+  next_plan: string | null;
+  work_entries: { category: string; visit: { content: string | null } | null }[];
+};
+
+const isBlank = (value: string | null | undefined) => !value?.trim();
+
+/**
+ * 提出時のチェック(API仕様書 POST /reports/{id}/submit、画面定義書 SCR-04)。
+ * 作業が1件以上、訪問の行は訪問内容が入力済み、所感と翌日の予定が入力済み。違反がなければ空の配列
+ */
+export const reportSubmitIssues = (
+  report: SubmittableReport,
+): { field: string; message: string }[] => {
+  const issues: { field: string; message: string }[] = [];
+  if (report.work_entries.length === 0) {
+    issues.push({ field: "work_entries", message: "作業を1件以上入力してください" });
+  }
+  report.work_entries.forEach((entry, index) => {
+    if (entry.category === "visit" && isBlank(entry.visit?.content)) {
+      issues.push({
+        field: `work_entries[${index}].visit.content`,
+        message: "訪問内容を入力してください",
+      });
+    }
+  });
+  if (isBlank(report.reflection)) {
+    issues.push({ field: "reflection", message: "所感を入力してください" });
+  }
+  if (isBlank(report.next_plan)) {
+    issues.push({ field: "next_plan", message: "翌日の予定を入力してください" });
+  }
+  return issues;
+};
