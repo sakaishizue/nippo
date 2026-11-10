@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { dateSchema, dateTimeSchema } from "./datetime";
 import { reportStatusSchema, reviewActionSchema, workCategorySchema } from "./enums";
+import { paginationQuerySchema } from "./pagination";
 
 // API仕様書 5章(日報)の出力
 
@@ -199,3 +200,32 @@ export const reportSubmitIssues = (
   }
   return issues;
 };
+
+/** クエリの値が1つなら文字列、複数なら配列で届くため、配列にそろえる */
+const toArray = (value: unknown) => (value === undefined || Array.isArray(value) ? value : [value]);
+
+/** GET /reports のクエリ */
+export const reportListQuerySchema = paginationQuerySchema.extend({
+  from: dateSchema.optional(),
+  to: dateSchema.optional(),
+  // 担当者。一般が指定した場合は無視する
+  user_id: z.coerce.number().int().positive().optional(),
+  // 訪問記録の顧客
+  customer_id: z.coerce.number().int().positive().optional(),
+  // 複数指定可(例: `status=submitted&status=returned`)
+  status: z.preprocess(toArray, z.array(reportStatusSchema)).optional(),
+  // 所感、翌日の予定、訪問内容、次回アクションの部分一致
+  q: z.string().trim().optional(),
+});
+
+/** GET /reports の1件分 */
+export const reportListItemSchema = z.object({
+  id: z.number().int(),
+  report_date: dateSchema,
+  user: refSchema,
+  status: reportStatusSchema,
+  visit_count: z.number().int(),
+  total_minutes: z.number().int(),
+  comment_count: z.number().int(),
+});
+export type ReportListItem = z.infer<typeof reportListItemSchema>;
