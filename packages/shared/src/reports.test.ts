@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reportInputSchema } from "./reports";
+import { reportInputSchema, reportSubmitIssues } from "./reports";
 
 const pathsOf = (input: unknown) => {
   const result = reportInputSchema.safeParse(input);
@@ -55,5 +55,36 @@ describe("reportInputSchema", () => {
         work_entries: [{ category: "visit", minutes: 30, visit: { customer_id: 1, content: "" } }],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("reportSubmitIssues", () => {
+  const complete = {
+    reflection: "所感",
+    next_plan: "予定",
+    work_entries: [
+      { category: "visit", visit: { content: "訪問内容" } },
+      { category: "travel", visit: null },
+    ],
+  };
+
+  it("入力がそろっていれば、違反はない", () => {
+    expect(reportSubmitIssues(complete)).toEqual([]);
+  });
+
+  it("作業なし、訪問内容なし、所感なし、翌日の予定なしをまとめて返す", () => {
+    expect(
+      reportSubmitIssues({
+        reflection: " ",
+        next_plan: null,
+        work_entries: [],
+      }).map((issue) => issue.field),
+    ).toEqual(["work_entries", "reflection", "next_plan"]);
+    expect(
+      reportSubmitIssues({
+        ...complete,
+        work_entries: [{ category: "visit", visit: { content: "" } }],
+      }),
+    ).toEqual([{ field: "work_entries[0].visit.content", message: "訪問内容を入力してください" }]);
   });
 });

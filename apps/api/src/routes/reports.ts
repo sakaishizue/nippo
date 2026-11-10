@@ -1,10 +1,12 @@
-import { reportInputSchema } from "@nippo/shared";
+import { reportInputSchema, reportSubmitIssues } from "@nippo/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, requireRole } from "../auth/middleware";
+import { now } from "../clock";
 import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
+import { createNotifications } from "../notifications";
 import { findReportDetail } from "../reports/detail";
 import {
   assertNotFuture,
@@ -127,6 +129,58 @@ export const reportsRoutes = ({ db }: Options) =>
           if (!other) throw error;
           throw reportAlreadyExists(other.id);
         }
+        return c.json(await findReportDetail(db, id, user));
+      },
+    )
+
+    // 日報を提出する(F-13)。上長への通知(F-51)を同じトランザクションで作る
+    .post(
+      "/:id{[0-9]+}/submit",
+      requireRole("member"),
+      validate("param", idParamSchema),
+      async (c) => {
+        const { id } = c.req.valid("param");
+        const user = c.var.user;
+
+        // 他人の日報は 404(SUB-09)
+        const report = await db.dailyReport.findFirst({
+          where: { id, userId: user.id },
+          include: { workEntries: { include: { visit: true }, orderBy: { id: "asc" } } },
+        });
+        if (!report) throw reportNotFound();
+        if (!(EDITABLE as readonly string[]).includes(report.status)) {
+          throw new AppError("INVALID_STATUS", "下書きか差し戻しの日報だけを提出できます");
+        }
+
+        const issues = reportSubmitIssues({
+          reflection: report.reflection,
+          next_plan: report.nextPlan,
+          work_entries: report.workEntries.map((entry) => ({
+            category: entry.category,
+            visit: entry.visit ? { content: entry.visit.content } : null,
+          })),
+        });
+        if (issues.length > 0) throw validationError(issues);
+
+        await db.$transaction(async (tx) => {
+          // 確かめてから提出するまでに、別の操作で提出された場合に備え、ステータスを条件にする
+          const { count } = await tx.dailyReport.updateMany({
+            where: { id, status: { in: [...EDITABLE] } },
+            data: { status: "submitted", submittedAt: now() },
+          });
+          if (count === 0) {
+            throw new AppError("INVALID_STATUS", "下書きか差し戻しの日報だけを提出できます");
+          }
+          await createNotifications(tx, {
+            type: "submitted",
+            report: {
+              id,
+              reportDate: toDateOnly(report.reportDate),
+              status: "submitted",
+              author: { id: user.id, name: user.name, managerId: user.managerId },
+            },
+          });
+        });
         return c.json(await findReportDetail(db, id, user));
       },
     );
