@@ -1,5 +1,6 @@
 export * from "./auth";
 export * from "./customers";
+export * from "./dashboard";
 export * from "./datetime";
 export * from "./deals";
 export * from "./enums";
