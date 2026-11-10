@@ -7,6 +7,7 @@ import { handleError, handleNotFound } from "./errors";
 import { requestLogger } from "./logger";
 import { loginRoutes, logoutRoutes } from "./routes/auth";
 import { customersRoutes } from "./routes/customers";
+import { dashboardRoutes } from "./routes/dashboard";
 import { dealsRoutes } from "./routes/deals";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
@@ -42,6 +43,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.route("/customers", customersRoutes({ db }));
   app.route("/deals", dealsRoutes({ db }));
   app.route("/reports", reportsRoutes({ db }));
+  app.route("/dashboard", dashboardRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);
