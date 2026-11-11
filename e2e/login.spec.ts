@@ -30,7 +30,7 @@ test("別の画面から移動してきた場合は、ログイン後に元の�
   await expect(page).toHaveURL("/login?redirect=%2Freports%3Fstatus%3Dsubmitted");
   await fillAndSubmit(page, "u1@example.com", PASSWORD);
   await expect(page).toHaveURL("/reports?status=submitted");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("SCR-03 日報一覧");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("日報一覧");
 });
 
 test("redirect に他のサイトが指定されていても、そのサイトには移動しない", async ({ page }) => {
