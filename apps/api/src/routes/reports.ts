@@ -1,4 +1,5 @@
 import {
+  commentInputSchema,
   paginationQuerySchema,
   reportInputSchema,
   reportListQuerySchema,
@@ -13,6 +14,7 @@ import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
 import { createNotifications } from "../notifications";
+import { postComment } from "../reports/comment";
 import { findReportDetail } from "../reports/detail";
 import { findPendingReports, reviewReport } from "../reports/review";
 import { searchReports } from "../reports/search";
@@ -226,5 +228,19 @@ export const reportsRoutes = ({ db }: Options) =>
         const { reason } = c.req.valid("json");
         if (!(await reviewReport(db, c.var.user, id, "returned", reason))) throw reportNotFound();
         return c.json(await findReportDetail(db, id, c.var.user));
+      },
+    )
+
+    // コメント投稿(F-44)。作成者と直属の上長だけが投稿できる。管理者は 403(CMT-06)
+    .post(
+      "/:id{[0-9]+}/comments",
+      requireRole("member", "manager"),
+      validate("param", idParamSchema),
+      validate("json", commentInputSchema),
+      async (c) => {
+        const { id } = c.req.valid("param");
+        const comment = await postComment(db, c.var.user, id, c.req.valid("json").body);
+        if (!comment) throw reportNotFound();
+        return c.json(comment, 201);
       },
     );
