@@ -11,6 +11,7 @@ import { dashboardRoutes } from "./routes/dashboard";
 import { dealsRoutes } from "./routes/deals";
 import { healthRoutes } from "./routes/health";
 import { meRoutes } from "./routes/me";
+import { notificationsRoutes } from "./routes/notifications";
 import { reportsRoutes } from "./routes/reports";
 import { userOptionsRoutes, usersRoutes } from "./routes/users";
 
@@ -44,6 +45,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.route("/deals", dealsRoutes({ db }));
   app.route("/reports", reportsRoutes({ db }));
   app.route("/dashboard", dashboardRoutes({ db }));
+  app.route("/notifications", notificationsRoutes({ db }));
 
   app.notFound(handleNotFound);
   app.onError(handleError);

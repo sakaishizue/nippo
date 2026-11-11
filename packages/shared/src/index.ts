@@ -7,6 +7,7 @@ export * from "./enums";
 export * from "./errors";
 export * from "./format";
 export * from "./me";
+export * from "./notifications";
 export * from "./pagination";
 export * from "./reports";
 export * from "./users";
