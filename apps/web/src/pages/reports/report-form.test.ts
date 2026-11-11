@@ -211,7 +211,7 @@ const detail = (overrides: Partial<ReportDetail> = {}): ReportDetail => ({
 });
 
 describe("reportFormDefaults", () => {
-  it("新規は今日の日付で、作業の行を1つ出す", () => {
+  it("新規は今日の日付で、訪問の行を1つ出す", () => {
     expect(reportFormDefaults(undefined, TODAY)).toEqual({
       report_date: TODAY,
       reflection: "",

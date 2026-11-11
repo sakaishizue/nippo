@@ -45,9 +45,9 @@ const emptyVisit = (): VisitFormValues => ({
   next_action: "",
 });
 
-/** 追加する作業の行。訪問の詳細欄は Issue #30 で作るため、それまでは移動にしておく */
+/** 追加する作業の行。営業の日報で最も多い訪問にしておく */
 export const newWorkEntry = (): WorkEntryFormValues => ({
-  category: "travel",
+  category: "visit",
   minutes: "",
   deal: null,
   note: "",

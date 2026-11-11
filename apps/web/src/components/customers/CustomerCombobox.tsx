@@ -43,6 +43,12 @@ export function CustomerCombobox({
   onBlur,
 }: Props) {
   const [inputValue, setInputValue] = useState(value?.name ?? "");
+  // 外から値が変わったとき(ダイアログで登録した顧客を選んだときなど)は、入力欄の文字も合わせる
+  const [shownValue, setShownValue] = useState(value);
+  if (value?.id !== shownValue?.id) {
+    setShownValue(value);
+    setInputValue(value?.name ?? "");
+  }
   // 選んだ顧客の名前が入力欄にあるときは、絞り込まずに一覧を出す
   const query = useDebouncedValue(inputValue === value?.name ? "" : inputValue.trim());
   const options = useQuery({
