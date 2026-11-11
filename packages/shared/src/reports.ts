@@ -261,3 +261,19 @@ export const pendingReportSchema = z.object({
   total_minutes: z.number().int(),
 });
 export type PendingReport = z.infer<typeof pendingReportSchema>;
+
+// API仕様書 5章(POST /reports/{id}/comments)
+
+export const COMMENT_BODY_MAX_LENGTH = 1000;
+
+/** POST /reports/{id}/comments のリクエスト。本文は必須。前後の空白は除く */
+export const commentInputSchema = z.object({
+  body: z
+    .string({ error: "コメントを入力してください" })
+    .trim()
+    .min(1, { error: "コメントを入力してください" })
+    .max(COMMENT_BODY_MAX_LENGTH, {
+      error: `コメントは${COMMENT_BODY_MAX_LENGTH.toLocaleString("ja-JP")}文字以内で入力してください`,
+    }),
+});
+export type CommentInput = z.input<typeof commentInputSchema>;
