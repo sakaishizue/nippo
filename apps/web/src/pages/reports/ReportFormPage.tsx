@@ -15,8 +15,16 @@ import { useEffect, useState } from "react";
 import { Controller, FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CustomerForm } from "@/components/customers/CustomerForm";
 import { notifyError, notifyInfo, notifySuccess } from "@/components/notify";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +68,8 @@ function ReportForm({ report }: FormProps) {
   const { allowLeave, dialog: leaveDialog } = useUnsavedChanges(form.formState.isDirty);
 
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  // 顧客の登録ダイアログを開いている作業の行
+  const [customerDialogFor, setCustomerDialogFor] = useState<number | null>(null);
   // 保存しようとした日付に別の日報があったときの、その日報のID
   const [existingReportId, setExistingReportId] = useState<number | null>(null);
   // 保存を始めたら、日付の重複チェックをやめる(保存した日報そのものを見つけてしまうため)
@@ -261,6 +271,7 @@ function ReportForm({ report }: FormProps) {
                   key={entry.id}
                   index={index}
                   onRemove={() => entries.remove(index)}
+                  onRegisterCustomer={() => setCustomerDialogFor(index)}
                 />
               ))}
             </ul>
@@ -351,6 +362,36 @@ function ReportForm({ report }: FormProps) {
         onConfirm={() => submit.mutate(form.getValues())}
         pending={submit.isPending}
       />
+
+      <Dialog
+        open={customerDialogFor !== null}
+        onOpenChange={(open) => !open && setCustomerDialogFor(null)}
+      >
+        <DialogContent className="max-h-[90svh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">顧客を登録</DialogTitle>
+            <DialogDescription>登録した顧客を、訪問先に選びます。</DialogDescription>
+          </DialogHeader>
+          <CustomerForm
+            idPrefix="new-customer"
+            onCancel={() => setCustomerDialogFor(null)}
+            onSaved={(customer) => {
+              if (customerDialogFor !== null) {
+                const name = `work_entries.${customerDialogFor}` as const;
+                form.setValue(
+                  `${name}.visit.customer`,
+                  { id: customer.id, name: customer.name },
+                  { shouldDirty: true, shouldValidate: form.formState.isSubmitted },
+                );
+                // 新しい顧客の商談はまだないため、選んでいた商談は外す
+                form.setValue(`${name}.deal`, null, { shouldDirty: true });
+              }
+              notifySuccess("顧客を登録しました");
+              setCustomerDialogFor(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {leaveDialog}
     </FormProvider>

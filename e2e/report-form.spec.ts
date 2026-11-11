@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 // SCR-04 日報入力。データはテスト仕様書 3章(開発用のシード)
 // シードの日報は U1 の 11月2日(承認済み)、3日(差し戻し)、4日(提出済み)、5日(下書き)。U2 には日報がない
@@ -22,6 +22,13 @@ const openNew = async (page: Page) => {
   await expect(heading(page)).toHaveText("日報作成");
 };
 
+/** 検索付きの選択欄で、名前を入力して候補から選ぶ */
+const choose = async (page: Page, input: Locator, name: string) => {
+  await input.fill(name.slice(0, 2));
+  await page.getByRole("option", { name: new RegExp(`^${name}`) }).click();
+  await expect(input).toHaveValue(name);
+};
+
 /**
  * 保存するテストで使う過去の日付。日報は1人1日1件で削除できないため、
  * 開発用のデータベースで何度実行しても重ならないように、実行した時刻とブラウザの種類から決める
@@ -35,6 +42,69 @@ const uniquePastDate = (projectName: string) => {
   );
   return date.toISOString().slice(0, 10);
 };
+
+// テスト仕様書 E2E-04
+test("訪問の詳細欄は、作業区分が「訪問」のときだけ表示する", async ({ page }) => {
+  await openNew(page);
+  const entry = workEntry(page, 1);
+  await expect(entry.getByLabel("作業区分")).toHaveValue("visit");
+  await expect(entry.getByRole("combobox", { name: "顧客" })).toBeVisible();
+  await expect(entry.getByLabel("訪問内容")).toBeVisible();
+
+  await entry.getByLabel("作業区分").selectOption("移動");
+  await expect(entry.getByRole("combobox", { name: "顧客" })).toHaveCount(0);
+  await expect(entry.getByLabel("訪問内容")).toHaveCount(0);
+
+  // 戻すと、前の入力が残っている
+  await entry.getByLabel("作業区分").selectOption("訪問");
+  await expect(entry.getByLabel("訪問内容")).toBeVisible();
+});
+
+// テスト仕様書 E2E-05
+test("訪問の顧客を選ぶと、商談の選択肢がその顧客の商談だけになる", async ({ page }) => {
+  await openNew(page);
+  const entry = workEntry(page, 1);
+  await choose(page, entry.getByRole("combobox", { name: "顧客" }), "A株式会社");
+
+  await entry.getByRole("combobox", { name: "商談" }).click();
+  await expect(page.getByRole("option", { name: /^新サービス導入/ })).toBeVisible();
+  await expect(page.getByRole("option", { name: /^保守契約の更新/ })).toHaveCount(0);
+  await page.getByRole("option", { name: /^新サービス導入/ }).click();
+  await expect(entry.getByRole("combobox", { name: "商談" })).toHaveValue("新サービス導入");
+
+  // 顧客を変えると、合わなくなった商談の選択を外す
+  await choose(page, entry.getByRole("combobox", { name: "顧客" }), "B株式会社");
+  await expect(entry.getByRole("combobox", { name: "商談" })).toHaveValue("");
+});
+
+// テスト仕様書 E2E-06
+test("日報入力から顧客を登録すると、その顧客を選んだ状態で戻る", async ({ page }, testInfo) => {
+  const name = `その場登録-${testInfo.project.name}-${Date.now()}`;
+  await openNew(page);
+  await workEntry(page, 1).getByRole("button", { name: "顧客を登録" }).click();
+  const dialog = page.getByRole("dialog", { name: "顧客を登録" });
+  await dialog.getByLabel("顧客名").fill(name);
+  await dialog.getByRole("button", { name: "保存" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("顧客を登録しました")).toBeVisible();
+  await expect(workEntry(page, 1).getByRole("combobox", { name: "顧客" })).toHaveValue(name);
+});
+
+test("訪問の行は、顧客を選ばないと保存できず、訪問内容がないと提出できない", async ({ page }) => {
+  await openNew(page);
+  const entry = workEntry(page, 1);
+  await entry.getByLabel("時間(分)").fill("60");
+  await page.getByRole("button", { name: "下書き保存" }).click();
+  await expect(entry.getByText("顧客を選択してください")).toBeVisible();
+
+  await choose(page, entry.getByRole("combobox", { name: "顧客" }), "A株式会社");
+  await page.getByLabel("所感").fill("所感");
+  await page.getByLabel("翌日の予定").fill("翌日の予定");
+  await page.getByRole("button", { name: "提出", exact: true }).click();
+  await expect(entry.getByText("訪問内容を入力してください")).toBeVisible();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+});
 
 // テスト仕様書 E2E-07
 test("作業の追加、削除、時間の変更で、合計時間をすぐに計算し直す", async ({ page }) => {
@@ -158,6 +228,7 @@ test("日報がある日付を選ぶと、その日報の入力画面を開く",
   await expect(page).toHaveURL(/\/reports\/\d+\/edit$/);
   await expect(page.getByLabel("日付")).toHaveValue("2026-11-05");
   await expect(workEntry(page, 1).getByLabel("時間(分)")).toHaveValue("60");
+  await expect(workEntry(page, 1).getByLabel("訪問内容")).toHaveValue("見積書の説明");
 });
 
 test("差し戻し中の日報は、差し戻し理由を上部に表示し、日付を変更できない", async ({ page }) => {
