@@ -14,7 +14,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
-    "create-admin": "tsx --env-file-if-exists=.env src/cli/create-admin.ts"
+    "create-admin": "tsx --env-file-if-exists=.env src/cli/create-admin.ts",
+    "reminder": "tsx --env-file-if-exists=.env src/jobs/run-reminders.ts"
   },
   "dependencies": {
     "@holiday-jp/holiday_jp": "2.5.2",

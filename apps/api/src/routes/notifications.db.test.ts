@@ -54,6 +54,7 @@ describe("GET /notifications", () => {
       type: "approved",
       message: "1件目",
       report_id: reports["R-app"].id,
+      target_date: null,
       read_at: "2026-11-03T09:00:00+09:00",
       created_at: "2026-11-02T19:00:00+09:00",
     });

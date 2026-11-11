@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-07 / 状態: 初版
+> 更新日: 2026-11-12 / 状態: 初版(リマインドのジョブを追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -148,4 +148,4 @@ unset DATABASE_URL
 | --- | --- |
 | `Dockerfile` | 画面のビルドとAPIをまとめたイメージを作る。追加するとステージングへのデプロイが動き出す。API のファイルとは別に、`@node-rs/argon2`(ネイティブモジュール)を node_modules に入れる |
 | マイグレーション | デプロイの前に、Prisma のマイグレーションを実行する手順を追加する |
-| 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する |
+| 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブにし、Cloud Scheduler から平日の朝9時(`0 9 * * 1-5`、タイムゾーン `Asia/Tokyo`)に起動する。祝日はジョブの中で判定して何もしない |

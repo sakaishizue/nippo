@@ -84,7 +84,7 @@ const reportIdOf = (event: NotificationEvent): number | null =>
 
 /**
  * 通知を作る。日報の状態の変更と同じトランザクションで呼ぶ(`db.$transaction(async (tx) => ...)` の tx を渡す)。
- * 状態の変更が失敗したら、通知も作られない。作った通知の件数を返す
+ * 状態の変更が失敗したら、通知も作られない。作った通知の件数を返す(作り済みのリマインドは数えない)
  */
 export const createNotifications = async (
   db: Db | Prisma.TransactionClient,
@@ -95,9 +95,12 @@ export const createNotifications = async (
   const type: NotificationType = event.type;
   const message = notificationMessage(event);
   const reportId = reportIdOf(event);
+  // リマインドは対象の日を持つ。同じ人に同じ日のリマインドは1件だけ(一意の制約で、作ろうとしても作らない)
+  const targetDate = event.type === "reminder" ? new Date(`${event.reportDate}T00:00:00Z`) : null;
   const createdAt = now();
   const { count } = await db.notification.createMany({
-    data: recipients.map((userId) => ({ userId, reportId, type, message, createdAt })),
+    data: recipients.map((userId) => ({ userId, reportId, type, message, targetDate, createdAt })),
+    skipDuplicates: true,
   });
   return count;
 };

@@ -45,6 +45,7 @@ API(`apps/api`、Hono):
 - 列挙値は `@nippo/shared` と一致させる(`apps/api/src/schema.test.ts` で確認する)
 - `prisma migrate reset` など、データを消す操作は利用者の同意なしに実行しない
 - `pnpm --filter @nippo/api db:seed`: 開発用のデータベースに、テスト仕様書 3章のデータを入れる。ユーザーが1人でもいれば何もしない
+- `pnpm --filter @nippo/api reminder`: 未提出のリマインド(F-54)を今の日時で1回実行する。本番は Cloud Run ジョブで `node dist/reminder.js` を実行する(処理は `src/jobs/reminder.ts` の `runReminders()`、CI/CD 設定手順書 5章)
 - `pnpm --filter @nippo/api create-admin --name <氏名> --email <メールアドレス>`: 最初の管理者を作る(F-04)。パスワードは画面で入力する(引数では受け取らない)。ステージングと本番での実行方法は CI/CD 設定手順書 2.6
 
 APIテスト(データベースを使うテスト):
