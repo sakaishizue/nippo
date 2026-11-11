@@ -64,7 +64,7 @@ APIテスト(データベースを使うテスト):
 - 画面を使えるロールは `src/screens.ts` の `roles` で指定する。ルートの loader の `requireUser()`(`src/auth/guard.ts`)が、未ログインならログイン画面(`?redirect=` に元の画面)へ移動し、権限がなければ403画面を表示する
 - API は `api.get()` などで呼ぶ(`src/lib/api.ts`)。ベースURL `/api/v1`、更新系への CSRFトークンの付与を行い、エラーは `ApiError` を投げる。直接 `fetch` しない
 - ログイン中のユーザーは `useMe()`(`src/auth/me.ts`)。ログインの直後は `setMe()` で覚える。API が `401` を返すと、ログイン画面へ移動する(`src/main.tsx`)
-- `422` の項目のエラーは `applyServerErrors(error, setError)`(`src/lib/form-errors.ts`)で React Hook Form に反映する
+- `422` の項目のエラーは `applyServerErrors(error, setError)`(`src/lib/form-errors.ts`)で React Hook Form に反映する。フォームの項目名が API と違う場合は、3つ目の引数で項目名を変換する(例: 日報入力の `toReportFormField`)
 - ログイン後に戻る画面は、`safeRedirectPath()`(`src/auth/redirect.ts`)で他のサイトでないことを確かめてから使う
 - 部品は shadcn/ui。追加は `apps/web` で `pnpm dlx shadcn@4.23.0 add <部品名>` を実行し、`src/components/ui/` に置く。クラス名の結合は `cn()`(`src/lib/utils.ts`)
   - 追加した部品が `import { cn } from "cn"` になり、npm の `cn` パッケージが依存に入ることがある。`@/lib/utils` に直し、`cn` パッケージは削除する。部品が使う `@base-ui/react` が依存に入っているかも確認する
@@ -74,7 +74,8 @@ APIテスト(データベースを使うテスト):
 - 色は画面定義書 3.5 のテーマ変数(`bg-primary`、`text-muted-foreground`、`bg-status-returned` など)を使い、色の値を直接書かない
 - 共通の部品: レイアウトは `components/layout/`(ログインが必要な画面はルーターで `AppLayout` の中に入る)。完了メッセージは `notifySuccess()`(`components/notify.tsx`)、確認ダイアログは `ConfirmDialog`、一覧は `DataList`(PC は表、スマホはカード)と `Pagination`、数値の入力欄は `NumberInput`(数字キーボード)
 - 一覧の検索条件とページは URL のクエリに持つ。`useListSearch()`(`lib/use-list-search.ts`)で読み書きする
-- 顧客の「選択(検索付き)」は `CustomerCombobox`、顧客の登録・編集のフォームは `CustomerForm`(画面を移動しないため、ダイアログにも置ける)、訪問履歴は `VisitHistory`
+- 顧客の「選択(検索付き)」は `CustomerCombobox`、顧客の登録・編集のフォームは `CustomerForm`(画面を移動しないため、ダイアログにも置ける)、訪問履歴は `VisitHistory`。商談の「選択(検索付き)」は `DealCombobox`(`customerId` でその顧客の商談に絞り込む)
+- 入力途中で画面を離れるときの警告は `useUnsavedChanges(isDirty)`(`lib/use-unsaved-changes.tsx`)。保存した後の移動の前には `allowLeave()` を呼ぶ
 - 日付と金額の表示は `formatDate()`(2026年11月4日(水))、`formatYen()`(3,000,000円)、時間は `formatMinutes()`(`@nippo/shared`)
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく

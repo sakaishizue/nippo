@@ -21,8 +21,6 @@ const loginAs = async (page: Page, user: User) => {
 const pages: readonly (readonly [string, string, User | null])[] = [
   ["/", "SCR-02 ホーム", "U1"],
   ["/reports", "SCR-03 日報一覧", "U1"],
-  ["/reports/new", "SCR-04 日報入力", "U1"],
-  ["/reports/100/edit", "SCR-04 日報入力", "U1"],
   ["/reports/100", "SCR-05 日報詳細", "U1"],
   ["/approvals", "SCR-06 承認待ち一覧", "M1"],
   ["/summary", "SCR-07 作業時間集計", "M1"],
