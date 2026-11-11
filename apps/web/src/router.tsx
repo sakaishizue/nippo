@@ -11,6 +11,7 @@ import { CustomersPage } from "./pages/customers/CustomersPage";
 import { DealDetailPage } from "./pages/deals/DealDetailPage";
 import { DealCreatePage, DealEditPage } from "./pages/deals/DealFormPage";
 import { DealsPage } from "./pages/deals/DealsPage";
+import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -26,6 +27,7 @@ const SCREENS: readonly Screen[] = ALL_SCREENS;
 // 作成済みの画面。ここにない画面は仮のページを表示する
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
+  "/": <HomePage />,
   "/profile": <ProfilePage />,
   "/admin/users": <UsersPage />,
   "/admin/users/new": <UserCreatePage />,

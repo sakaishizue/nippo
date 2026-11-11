@@ -18,7 +18,8 @@ const MEMBER_MANAGER = ["member", "manager"] as const;
 
 export const SCREENS = [
   { id: "SCR-01", name: "ログイン", path: "/login", public: true },
-  { id: "SCR-02", name: "ホーム", path: "/", roles: MEMBER_MANAGER },
+  // 管理者はホームを使わないが、開いたときはユーザー一覧へ移動する(画面の中で移動する)
+  { id: "SCR-02", name: "ホーム", path: "/" },
   { id: "SCR-03", name: "日報一覧", path: "/reports" },
   { id: "SCR-04", name: "日報入力", path: "/reports/new", roles: MEMBER },
   { id: "SCR-04", name: "日報入力", path: "/reports/:id/edit", roles: MEMBER },
