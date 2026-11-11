@@ -1,4 +1,10 @@
-import { reportInputSchema, reportListQuerySchema, reportSubmitIssues } from "@nippo/shared";
+import {
+  paginationQuerySchema,
+  reportInputSchema,
+  reportListQuerySchema,
+  reportSubmitIssues,
+  returnInputSchema,
+} from "@nippo/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, requireRole } from "../auth/middleware";
@@ -8,6 +14,7 @@ import type { Db } from "../db";
 import { AppError } from "../errors";
 import { createNotifications } from "../notifications";
 import { findReportDetail } from "../reports/detail";
+import { findPendingReports, reviewReport } from "../reports/review";
 import { searchReports } from "../reports/search";
 import {
   assertNotFuture,
@@ -69,6 +76,11 @@ export const reportsRoutes = ({ db }: Options) =>
     // 日報の検索(F-14)。閲覧範囲の日報だけを返す
     .get("/", validate("query", reportListQuerySchema), async (c) =>
       c.json(await searchReports(db, c.var.user, c.req.valid("query"))),
+    )
+
+    // 承認待ちの一覧(F-45)。直属の部下の提出済みの日報を、提出日時の古い順に返す
+    .get("/pending", requireRole("manager"), validate("query", paginationQuerySchema), async (c) =>
+      c.json(await findPendingReports(db, c.var.user, c.req.valid("query"))),
     )
 
     // `/reports/pending` などと区別するため、ID は数字だけ
@@ -188,5 +200,31 @@ export const reportsRoutes = ({ db }: Options) =>
           });
         });
         return c.json(await findReportDetail(db, id, user));
+      },
+    )
+
+    // 承認(F-41)。直属の上長が、提出済みの日報だけを承認できる
+    .post(
+      "/:id{[0-9]+}/approve",
+      requireRole("manager"),
+      validate("param", idParamSchema),
+      async (c) => {
+        const { id } = c.req.valid("param");
+        if (!(await reviewReport(db, c.var.user, id, "approved", null))) throw reportNotFound();
+        return c.json(await findReportDetail(db, id, c.var.user));
+      },
+    )
+
+    // 差し戻し(F-41、F-42)。理由は必須
+    .post(
+      "/:id{[0-9]+}/return",
+      requireRole("manager"),
+      validate("param", idParamSchema),
+      validate("json", returnInputSchema),
+      async (c) => {
+        const { id } = c.req.valid("param");
+        const { reason } = c.req.valid("json");
+        if (!(await reviewReport(db, c.var.user, id, "returned", reason))) throw reportNotFound();
+        return c.json(await findReportDetail(db, id, c.var.user));
       },
     );

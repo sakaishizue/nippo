@@ -229,3 +229,35 @@ export const reportListItemSchema = z.object({
   comment_count: z.number().int(),
 });
 export type ReportListItem = z.infer<typeof reportListItemSchema>;
+
+// API仕様書 5章(承認・差し戻し・承認待ち)
+
+export const RETURN_REASON_MAX_LENGTH = 1000;
+
+/** POST /reports/{id}/return のリクエスト。理由は必須(F-42)。前後の空白は除く */
+export const returnInputSchema = z.object({
+  reason: z
+    .string({ error: "差し戻し理由を入力してください" })
+    .trim()
+    .min(1, { error: "差し戻し理由を入力してください" })
+    .max(RETURN_REASON_MAX_LENGTH, {
+      error: `差し戻し理由は${RETURN_REASON_MAX_LENGTH.toLocaleString("ja-JP")}文字以内で入力してください`,
+    }),
+});
+export type ReturnInput = z.input<typeof returnInputSchema>;
+
+/** 承認待ちを強調表示するまでの時間(画面定義書 6章 No.6、テスト仕様書 8章 No.2) */
+export const PENDING_OVERDUE_HOURS = 48;
+
+/** GET /reports/pending の1件分 */
+export const pendingReportSchema = z.object({
+  id: z.number().int(),
+  report_date: dateSchema,
+  user: refSchema,
+  submitted_at: dateTimeSchema,
+  // 提出から48時間以上経過している
+  is_overdue: z.boolean(),
+  visit_count: z.number().int(),
+  total_minutes: z.number().int(),
+});
+export type PendingReport = z.infer<typeof pendingReportSchema>;
