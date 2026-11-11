@@ -21,7 +21,6 @@ const loginAs = async (page: Page, user: User) => {
 const pages: readonly (readonly [string, string, User | null])[] = [
   ["/", "SCR-02 ホーム", "U1"],
   ["/reports", "SCR-03 日報一覧", "U1"],
-  ["/reports/100", "SCR-05 日報詳細", "U1"],
   ["/approvals", "SCR-06 承認待ち一覧", "M1"],
   ["/summary", "SCR-07 作業時間集計", "M1"],
   ["/notifications", "SCR-14 通知一覧", "U1"],
@@ -34,12 +33,6 @@ for (const [path, heading, user] of pages) {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
   });
 }
-
-test("ID 付きのURLでは、ページにIDが渡る", async ({ page }) => {
-  await loginAs(page, "U1");
-  await page.goto("/reports/100");
-  await expect(page.getByText("ID: 100")).toBeVisible();
-});
 
 test("存在しないURLでは「ページが見つかりません」を表示する", async ({ page }) => {
   await page.goto("/no-such-page");

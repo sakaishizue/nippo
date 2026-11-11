@@ -16,6 +16,7 @@ import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
+import { ReportDetailPage } from "./pages/reports/ReportDetailPage";
 import { ReportCreatePage, ReportEditPage } from "./pages/reports/ReportFormPage";
 import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
 
@@ -37,6 +38,7 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/deals/:id": <DealDetailPage />,
   "/deals/:id/edit": <DealEditPage />,
   "/reports/new": <ReportCreatePage />,
+  "/reports/:id": <ReportDetailPage />,
   "/reports/:id/edit": <ReportEditPage />,
 };
 
