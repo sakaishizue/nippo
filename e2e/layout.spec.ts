@@ -59,7 +59,7 @@ test("メニューから画面を移動でき、選んだメニューが選択�
   await openMenu(page);
   await menuLinks(page).getByText("日報一覧").click();
   await expect(page).toHaveURL("/reports");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("SCR-03 日報一覧");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("日報一覧");
 
   await openMenu(page);
   await expect(menuLinks(page).getByText("日報一覧")).toHaveAttribute("aria-current", "page");

@@ -18,6 +18,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
 import { ReportDetailPage } from "./pages/reports/ReportDetailPage";
 import { ReportCreatePage, ReportEditPage } from "./pages/reports/ReportFormPage";
+import { ReportsPage } from "./pages/reports/ReportsPage";
 import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
 
 const SCREENS: readonly Screen[] = ALL_SCREENS;
@@ -37,6 +38,7 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/deals/new": <DealCreatePage />,
   "/deals/:id": <DealDetailPage />,
   "/deals/:id/edit": <DealEditPage />,
+  "/reports": <ReportsPage />,
   "/reports/new": <ReportCreatePage />,
   "/reports/:id": <ReportDetailPage />,
   "/reports/:id/edit": <ReportEditPage />,
