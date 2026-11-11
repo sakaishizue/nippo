@@ -11,18 +11,20 @@ export const toFormFieldName = (field: string): string =>
 /**
  * `422 VALIDATION_ERROR` の `details` を、React Hook Form の項目のエラーにする。
  * 項目名がない内容は `root.serverError` に入れる。同じ項目に複数の内容があれば最初のものを使う。
- * 反映した場合は true を返す。それ以外のエラーは呼び出し側で扱う
+ * 反映した場合は true を返す。それ以外のエラーは呼び出し側で扱う。
+ * フォームの項目名が API と違う場合は、toName で API の項目名をフォームの名前にする
  */
 export const applyServerErrors = <T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,
+  toName: (field: string) => string = toFormFieldName,
 ): boolean => {
   if (!isApiError(error) || error.code !== "VALIDATION_ERROR" || error.details.length === 0) {
     return false;
   }
   const done = new Set<string>();
   for (const detail of error.details) {
-    const name = toFormFieldName(detail.field) || SERVER_ERROR_NAME;
+    const name = toName(detail.field) || SERVER_ERROR_NAME;
     if (done.has(name)) continue;
     // 最初のエラーの項目に移動する
     setError(

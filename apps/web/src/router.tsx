@@ -16,6 +16,7 @@ import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
+import { ReportCreatePage, ReportEditPage } from "./pages/reports/ReportFormPage";
 import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
 
 const SCREENS: readonly Screen[] = ALL_SCREENS;
@@ -35,6 +36,8 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/deals/new": <DealCreatePage />,
   "/deals/:id": <DealDetailPage />,
   "/deals/:id/edit": <DealEditPage />,
+  "/reports/new": <ReportCreatePage />,
+  "/reports/:id/edit": <ReportEditPage />,
 };
 
 const elementOf = (screen: Screen) =>

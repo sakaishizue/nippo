@@ -35,3 +35,6 @@ export const notifySuccess = (message: string) => toast.success(message);
 
 /** 画面全体に関わるエラー(項目のエラーは項目の下に表示する) */
 export const notifyError = (message: string) => toast.error(message);
+
+/** 知らせるだけのメッセージ(例: 「この日付の日報は作成済みのため、その日報を開きました」) */
+export const notifyInfo = (message: string) => toast(message);
