@@ -11,8 +11,8 @@ const fillAndSubmit = async (page: Page, email: string, password: string) => {
 
 // テスト仕様書 E2E-11(ログイン後の移動先)
 const destinations = [
-  ["U1", "u1@example.com", "/", "SCR-02 ホーム"],
-  ["M1", "m1@example.com", "/", "SCR-02 ホーム"],
+  ["U1", "u1@example.com", "/", "ホーム"],
+  ["M1", "m1@example.com", "/", "ホーム"],
   ["A1", "a1@example.com", "/admin/users", "ユーザー一覧"],
 ] as const;
 

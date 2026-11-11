@@ -76,7 +76,8 @@ APIテスト(データベースを使うテスト):
 - 一覧の検索条件とページは URL のクエリに持つ。`useListSearch()`(`lib/use-list-search.ts`)で読み書きする
 - 顧客の「選択(検索付き)」は `CustomerCombobox`、顧客の登録・編集のフォームは `CustomerForm`(画面を移動しないため、ダイアログにも置ける)、訪問履歴は `VisitHistory`。商談の「選択(検索付き)」は `DealCombobox`(`customerId` でその顧客の商談に絞り込む)
 - 入力途中で画面を離れるときの警告は `useUnsavedChanges(isDirty)`(`lib/use-unsaved-changes.tsx`)。保存した後の移動の前には `allowLeave()` を呼ぶ
-- 日付と金額の表示は `formatDate()`(2026年11月4日(水))、`formatYen()`(3,000,000円)、時間は `formatMinutes()`(`@nippo/shared`)
+- 日付と金額の表示は `formatDate()`(2026年11月4日(水))、`formatYen()`(3,000,000円)、時間は `formatMinutes()`、日時は `formatDateTime()`(2026年11月6日(金) 18:30)(`@nippo/shared`)
+- 日報のステータスは `ReportStatusLabel`(画面定義書 3.5 の色と文字)
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
 - CI の「E2E tests」は、サービスコンテナの PostgreSQL にマイグレーションとシードを適用してから実行する。失敗すると、トレースとスクリーンショットを含む HTML のレポートを保存する
