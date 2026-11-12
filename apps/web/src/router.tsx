@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { requireUser } from "./auth/guard";
 import { AppLayout } from "./components/layout/AppLayout";
+import { ApprovalsPage } from "./pages/ApprovalsPage";
 import { UserCreatePage, UserEditPage } from "./pages/admin/UserFormPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { CustomerDetailPage } from "./pages/customers/CustomerDetailPage";
@@ -28,6 +29,7 @@ const SCREENS: readonly Screen[] = ALL_SCREENS;
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
   "/": <HomePage />,
+  "/approvals": <ApprovalsPage />,
   "/profile": <ProfilePage />,
   "/admin/users": <UsersPage />,
   "/admin/users/new": <UserCreatePage />,

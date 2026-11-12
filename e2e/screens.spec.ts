@@ -19,7 +19,6 @@ const loginAs = async (page: Page, user: User) => {
 // 画面定義書の各画面のURLで、仮のページが開くことを確認する。画面ができたら各画面のテストに置き換える
 // ユーザーは、その画面を使えるロールの人(null はログインしない)
 const pages: readonly (readonly [string, string, User | null])[] = [
-  ["/approvals", "SCR-06 承認待ち一覧", "M1"],
   ["/summary", "SCR-07 作業時間集計", "M1"],
   ["/notifications", "SCR-14 通知一覧", "U1"],
 ];
