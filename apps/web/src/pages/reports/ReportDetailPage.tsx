@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { api, isApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { CommentForm, ReviewActions } from "./ReportActions";
 
 const positiveId = (value: string | undefined) => {
   const id = Number(value);
@@ -123,12 +124,14 @@ function WorkEntryItem({ entry, index }: { entry: ReportWorkEntry; index: number
 }
 
 function ReportContent({ report }: { report: ReportDetail }) {
+  const { can_edit, can_review, can_comment } = report.permissions;
   return (
-    <div className="flex flex-col gap-5 md:gap-6">
+    // スマートフォンでは承認と差し戻しのボタンを画面の下に固定するため、その分の余白を空ける
+    <div className={cn("flex flex-col gap-5 md:gap-6", can_review && "pb-24 md:pb-0")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">{formatDate(report.report_date)}の日報</h1>
         {/* 編集は本人の下書きと差し戻しだけ(permissions.can_edit) */}
-        {report.permissions.can_edit && (
+        {can_edit && (
           <Link
             to={`/reports/${report.id}/edit`}
             className={buttonVariants({ variant: "outline" })}
@@ -137,6 +140,8 @@ function ReportContent({ report }: { report: ReportDetail }) {
             編集
           </Link>
         )}
+        {/* 承認と差し戻しは直属の上長で提出済みだけ(permissions.can_review)。管理者には出さない */}
+        {can_review && <ReviewActions report={report} />}
       </div>
 
       <Section id="report-info" title="日報の情報">
@@ -233,6 +238,8 @@ function ReportContent({ report }: { report: ReportDetail }) {
             ))}
           </ol>
         )}
+        {/* コメントは本人と直属の上長だけ(permissions.can_comment)。管理者には入力欄を出さない */}
+        {can_comment && <CommentForm report={report} />}
       </Section>
     </div>
   );
