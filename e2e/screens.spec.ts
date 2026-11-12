@@ -16,20 +16,6 @@ const loginAs = async (page: Page, user: User) => {
   expect(res.status()).toBe(200);
 };
 
-// 画面定義書の各画面のURLで、仮のページが開くことを確認する。画面ができたら各画面のテストに置き換える
-// ユーザーは、その画面を使えるロールの人(null はログインしない)
-const pages: readonly (readonly [string, string, User | null])[] = [
-  ["/summary", "SCR-07 作業時間集計", "M1"],
-];
-
-for (const [path, heading, user] of pages) {
-  test(`${path} で「${heading}」が開く`, async ({ page }) => {
-    if (user) await loginAs(page, user);
-    await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
-  });
-}
-
 test("存在しないURLでは「ページが見つかりません」を表示する", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("ページが見つかりません");

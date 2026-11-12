@@ -1,6 +1,6 @@
 import type { Role } from "@nippo/shared";
 
-// 画面定義書 1章の画面とURLの対応と、使えるロール。中身は各画面のIssueで作る
+// 画面定義書 1章の画面とURLの対応と、使えるロール。表示する画面は router.tsx に登録する
 export type Screen = {
   id: string;
   name: string;
