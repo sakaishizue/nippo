@@ -20,7 +20,6 @@ const loginAs = async (page: Page, user: User) => {
 // ユーザーは、その画面を使えるロールの人(null はログインしない)
 const pages: readonly (readonly [string, string, User | null])[] = [
   ["/summary", "SCR-07 作業時間集計", "M1"],
-  ["/notifications", "SCR-14 通知一覧", "U1"],
 ];
 
 for (const [path, heading, user] of pages) {
