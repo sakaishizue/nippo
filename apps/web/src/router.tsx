@@ -15,6 +15,7 @@ import { DealsPage } from "./pages/deals/DealsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
+import { NotificationsPage } from "./pages/notifications/NotificationsPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
@@ -30,6 +31,7 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
   "/": <HomePage />,
   "/approvals": <ApprovalsPage />,
+  "/notifications": <NotificationsPage />,
   "/profile": <ProfilePage />,
   "/admin/users": <UsersPage />,
   "/admin/users/new": <UserCreatePage />,

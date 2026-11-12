@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CustomerForm } from "@/components/customers/CustomerForm";
 import { notifyError, notifyInfo, notifySuccess } from "@/components/notify";
@@ -52,15 +52,17 @@ const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 type FormProps = {
   /** 編集する日報。省略すると新規作成 */
   report?: ReportDetail;
+  /** 新規作成の日付の初期値(リマインドの通知から開いたときなど)。省略すると今日 */
+  initialDate?: string;
 };
 
-function ReportForm({ report }: FormProps) {
+function ReportForm({ report, initialDate }: FormProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const today = todayInJst();
   const form = useForm<ReportFormValues>({
     resolver: reportFormResolver,
-    defaultValues: reportFormDefaults(report, today),
+    defaultValues: reportFormDefaults(report, initialDate ?? today),
   });
   const entries = useFieldArray({ control: form.control, name: "work_entries" });
   const watchedEntries = useWatch({ control: form.control, name: "work_entries" });
@@ -405,10 +407,14 @@ const positiveId = (value: string | undefined) => {
 
 /** SCR-04 日報入力(新規作成)。日付の初期値は今日 */
 export function ReportCreatePage() {
+  // `?date=` があれば、その日付で作り始める。未来の日付と形式の誤りは無視して今日にする
+  const [searchParams] = useSearchParams();
+  const date = searchParams.get("date");
+  const initialDate = date && isDate(date) && date <= todayInJst() ? date : undefined;
   return (
     <div className="flex flex-col gap-5 md:gap-6">
       <h1 className="text-xl font-bold">日報作成</h1>
-      <ReportForm />
+      <ReportForm initialDate={initialDate} />
     </div>
   );
 }
