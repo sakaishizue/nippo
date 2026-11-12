@@ -14,6 +14,7 @@ import { meRoutes } from "./routes/me";
 import { notificationsRoutes } from "./routes/notifications";
 import { reportsRoutes } from "./routes/reports";
 import { userOptionsRoutes, usersRoutes } from "./routes/users";
+import { workTimeSummaryRoutes } from "./routes/work-time-summary";
 
 // 入力チェックのメッセージを日本語にする
 z.config(z.locales.ja());
@@ -45,6 +46,7 @@ export const createApp = ({ db, secureCookie }: AppOptions) => {
   app.route("/deals", dealsRoutes({ db }));
   app.route("/reports", reportsRoutes({ db }));
   app.route("/dashboard", dashboardRoutes({ db }));
+  app.route("/work-time-summary", workTimeSummaryRoutes({ db }));
   app.route("/notifications", notificationsRoutes({ db }));
 
   app.notFound(handleNotFound);

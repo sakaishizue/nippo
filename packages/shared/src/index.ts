@@ -10,5 +10,6 @@ export * from "./me";
 export * from "./notifications";
 export * from "./pagination";
 export * from "./reports";
+export * from "./summary";
 export * from "./users";
 export * from "./visits";
