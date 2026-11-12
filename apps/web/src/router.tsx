@@ -16,22 +16,23 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { StandaloneNotFoundPage } from "./pages/NotFoundPage";
 import { NotificationsPage } from "./pages/notifications/NotificationsPage";
-import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RootErrorPage, RouteErrorPage } from "./pages/RouteErrorPage";
 import { ReportDetailPage } from "./pages/reports/ReportDetailPage";
 import { ReportCreatePage, ReportEditPage } from "./pages/reports/ReportFormPage";
 import { ReportsPage } from "./pages/reports/ReportsPage";
+import { SummaryPage } from "./pages/summary/SummaryPage";
 import { SCREENS as ALL_SCREENS, type Screen } from "./screens";
 
 const SCREENS: readonly Screen[] = ALL_SCREENS;
 
-// 作成済みの画面。ここにない画面は仮のページを表示する
+// 画面定義書の各画面。screens.ts の URL ごとに、表示する画面を登録する
 const PAGES: Partial<Record<string, ReactNode>> = {
   "/login": <LoginPage />,
   "/": <HomePage />,
   "/approvals": <ApprovalsPage />,
   "/notifications": <NotificationsPage />,
+  "/summary": <SummaryPage />,
   "/profile": <ProfilePage />,
   "/admin/users": <UsersPage />,
   "/admin/users/new": <UserCreatePage />,
@@ -50,8 +51,12 @@ const PAGES: Partial<Record<string, ReactNode>> = {
   "/reports/:id/edit": <ReportEditPage />,
 };
 
-const elementOf = (screen: Screen) =>
-  PAGES[screen.path] ?? <PlaceholderPage screenId={screen.id} name={screen.name} />;
+/** URL の画面。screens.ts にあって、ここに登録していない画面があれば、起動したときにエラーにする */
+const elementOf = (screen: Screen): ReactNode => {
+  const page = PAGES[screen.path];
+  if (!page) throw new Error(`画面が登録されていません: ${screen.id} ${screen.path}`);
+  return page;
+};
 
 // ログインが必要な画面。表示の前にロールを確認し、エラー(403 など)はヘッダーの下に表示する
 const toAppRoute = (queryClient: QueryClient, screen: Screen): RouteObject => ({
