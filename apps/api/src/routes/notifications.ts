@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { type AuthEnv, requireRole } from "../auth/middleware";
 import { now } from "../clock";
+import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
 import { validate } from "../validator";
@@ -20,6 +21,7 @@ const select = {
   type: true,
   message: true,
   reportId: true,
+  targetDate: true,
   readAt: true,
   createdAt: true,
 } as const;
@@ -49,6 +51,7 @@ export const notificationsRoutes = ({ db }: Options) =>
           type: row.type,
           message: row.message,
           report_id: row.reportId,
+          target_date: row.targetDate ? toDateOnly(row.targetDate) : null,
           read_at: row.readAt ? toJstDateTimeString(row.readAt) : null,
           created_at: toJstDateTimeString(row.createdAt),
         }),

@@ -1,6 +1,6 @@
 # 営業日報システム 技術選定書
 
-> 更新日: 2026-11-07 / 状態: 初版
+> 更新日: 2026-11-12 / 状態: 初版(リマインドを Cloud Run ジョブで実行する)
 > 前提: 開発言語の指定なし、運用先は Google Cloud(データベースのみ Neon)、画面とAPIは分ける構成、運用費用をできるだけ抑える
 
 ## 1. 選定の方針
@@ -16,8 +16,9 @@
 flowchart LR
     browser["ブラウザ<br>(PC、スマートフォン)"] -->|HTTPS| run["Cloud Run<br>画面の配信 + API"]
     run --> neon[("Neon<br>PostgreSQL")]
-    scheduler["Cloud Scheduler"] -->|平日 9:00 リマインド| run
-    scheduler -->|毎日 バックアップ| job["Cloud Run ジョブ"]
+    scheduler["Cloud Scheduler"] -->|平日 9:00| reminder["Cloud Run ジョブ<br>リマインド"]
+    reminder --> neon
+    scheduler -->|毎日| job["Cloud Run ジョブ<br>バックアップ"]
     job --> neon
     job --> storage["Cloud Storage<br>バックアップ"]
     run --> secret["Secret Manager"]
@@ -83,9 +84,10 @@ flowchart LR
 | ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------- |
 | リージョン         | シンガポール(asia-southeast1) | データベースと同じ地域に置き、1回の画面表示で何度も発生するデータベースへの問い合わせを速くする |
 | アプリの実行       | Cloud Run                     | 画面とAPIの配信。アクセスがない間は停止し、費用がかからない                                     |
+| リマインドの実行   | Cloud Run ジョブ              | 平日の朝9時に、前営業日の日報が未提出の人に通知を作る。API と同じイメージで `node dist/reminder.js` を実行する。公開の入り口を置かないため、外部から呼ばれない |
 | バックアップの実行 | Cloud Run ジョブ              | 毎日、データベースの全データを書き出して Cloud Storage に保存する                               |
 | バックアップの保管 | Cloud Storage                 | 書き出したデータを保管する。保持期間を過ぎたものは自動で削除する                                |
-| 定期処理           | Cloud Scheduler               | 平日9時のリマインドと、毎日のバックアップを呼び出す                                             |
+| 定期処理           | Cloud Scheduler               | 平日9時のリマインドと、毎日のバックアップの Cloud Run ジョブを起動する。祝日は処理の中で判定して何もしない |
 | 秘密情報           | Secret Manager                | データベースの接続文字列など                                                                    |
 | ログ               | Cloud Logging                 | APIのログを構造化して出力する                                                                   |
 | コンテナの保管     | Artifact Registry             |                                                                                                 |

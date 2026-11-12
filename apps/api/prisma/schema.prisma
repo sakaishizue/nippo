@@ -220,6 +220,8 @@ model Notification {
   reportId  Int?             @map("report_id")
   type      NotificationType
   message   String
+  // 対象の日(リマインドだけ)。未提出の日報の日付で、同じ人に同じ日のリマインドを二重に作らないために使う
+  targetDate DateTime?       @map("target_date") @db.Date
   readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -228,6 +230,8 @@ model Notification {
 
   // 未読の件数と一覧の取得に使う
   @@index([userId, readAt])
+  // 同じ人に同じ日のリマインドは1件だけ(RMD-07)。リマインド以外は target_date が NULL のため重ならない
+  @@unique([userId, type, targetDate])
   @@map("notifications")
 }
 
