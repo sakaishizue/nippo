@@ -48,7 +48,7 @@ gcloud projects describe PROJECT_ID --format="value(projectNumber)"
 
 ```bash
 gcloud config set project PROJECT_ID
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com iam.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
 ```
 
 ### 2.2 イメージの保管場所
@@ -194,6 +194,8 @@ unset DATABASE_URL
 | Read the runtime service account | `nippo-runtime` のサービスアカウントユーザーのロールがある(2.3) |
 
 - 認証で失敗する場合は、2.4 の `OWNER/nippo` がこのリポジトリ(`sakaishizue/nippo`)と一致しているか、`PROJECT_NUMBER` がプロジェクトIDではなく番号になっているかを確かめる
+- 認証で `invalid_target` になる場合は、3.1 の `GCP_WORKLOAD_IDENTITY_PROVIDER` のプロジェクト番号に、プール `github` とプロバイダー `github-actions` がない(別のプロジェクトで作った、作成が途中で失敗した)。`gcloud iam workload-identity-pools providers list --workload-identity-pool=github --location=global` で確かめ、なければ 2.4 をやり直す。作った直後は、反映まで数分かかることがある
+- 「API [iam.googleapis.com] not enabled」で失敗する場合は、2.1 の API の有効化で `iam.googleapis.com` が抜けている。`gcloud services enable iam.googleapis.com` を実行し、数分待ってから実行し直す
 
 ## 4. 本番へのリリース手順
 
