@@ -1,0 +1,50 @@
+name: Check Google Cloud access
+
+# Google Cloud の初期設定(CI/CD 設定手順書 2章、3章)が終わったら、手動で実行して確かめる。
+# Workload Identity 連携で github-deployer として認証し、デプロイに使う権限で読み取りだけを行う。何も作らない
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: asia-southeast1
+
+jobs:
+  check:
+    name: Authenticate and read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check repository variables
+        env:
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+        run: |
+          missing=0
+          for name in PROJECT_ID PROVIDER SERVICE_ACCOUNT RUNTIME_SERVICE_ACCOUNT; do
+            if [ -z "${!name}" ]; then
+              echo "::error::リポジトリの変数 GCP_${name} が設定されていません(CI/CD 設定手順書 3.1)"
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Show the authenticated account
+        run: gcloud auth list --filter=status:ACTIVE --format="value(account)"
+      # デプロイで使う権限があるかを、読み取りだけで確かめる
+      - name: Read Artifact Registry (artifactregistry.writer)
+        run: gcloud artifacts repositories describe nippo --location "$REGION" --project "${{ vars.GCP_PROJECT_ID }}" --format="value(name)"
+      - name: Read Cloud Run (run.admin)
+        run: gcloud run services list --region "$REGION" --project "${{ vars.GCP_PROJECT_ID }}" --format="value(metadata.name)"
+      # サービスアカウントユーザーのロールがあれば、nippo-runtime の情報を読める
+      - name: Read the runtime service account (iam.serviceAccountUser)
+        run: gcloud iam service-accounts describe "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" --project "${{ vars.GCP_PROJECT_ID }}" --format="value(email)"
