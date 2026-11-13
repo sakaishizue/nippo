@@ -117,6 +117,16 @@ unset DB_URL
 ```
 
 - 1行目を実行したら、Neon の「Connect」で接続プール用(Connection pooling を有効)の接続文字列をコピーして貼り付け、Enter を押す
+- Windows の PowerShell には `read` がないため、次のようにする。PowerShell のパイプは最後に改行を付けるため、一時ファイルに改行なしで書いて渡し、すぐに消す
+
+```powershell
+$secure = Read-Host -AsSecureString "接続文字列"
+$path = Join-Path $env:TEMP "nippo-db-url.txt"
+[System.IO.File]::WriteAllText($path, [System.Net.NetworkCredential]::new("", $secure).Password)
+gcloud secrets create nippo-staging-database-url --data-file="$path"
+Remove-Item $path
+```
+
 - 本番用は、シークレット名を `nippo-database-url` にして同じように登録する
 - シークレットが既にある場合(登録し直す場合)は、`gcloud secrets create` の代わりに `gcloud secrets versions add nippo-staging-database-url --data-file=-` を使う
 
