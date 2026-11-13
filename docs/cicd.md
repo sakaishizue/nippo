@@ -48,7 +48,7 @@ gcloud projects describe PROJECT_ID --format="value(projectNumber)"
 
 ```bash
 gcloud config set project PROJECT_ID
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com iam.googleapis.com iamcredentials.googleapis.com secretmanager.googleapis.com
 ```
 
 ### 2.2 イメージの保管場所
@@ -108,15 +108,34 @@ gcloud iam service-accounts add-iam-policy-binding github-deployer@PROJECT_ID.ia
 | `nippo-database-url` | 本番用プロジェクトの接続文字列 |
 | `nippo-staging-database-url` | ステージング用プロジェクトの接続文字列 |
 
-```bash
-gcloud secrets create nippo-database-url --data-file=-
-gcloud secrets create nippo-staging-database-url --data-file=-
+接続文字列は、画面に表示せず、シェルの履歴やファイルにも残さないように登録する。`read -rs` は入力した文字を表示せず、最後の改行も含めない(改行が入ると、接続に失敗する)。
 
+```bash
+read -rs DB_URL
+printf "%s" "$DB_URL" | gcloud secrets create nippo-staging-database-url --data-file=-
+unset DB_URL
+```
+
+- 1行目を実行したら、Neon の「Connect」で接続プール用(Connection pooling を有効)の接続文字列をコピーして貼り付け、Enter を押す
+- Windows の PowerShell には `read` がないため、次のようにする。PowerShell のパイプは最後に改行を付けるため、一時ファイルに改行なしで書いて渡し、すぐに消す
+
+```powershell
+$secure = Read-Host -AsSecureString "接続文字列"
+$path = Join-Path $env:TEMP "nippo-db-url.txt"
+[System.IO.File]::WriteAllText($path, [System.Net.NetworkCredential]::new("", $secure).Password)
+gcloud secrets create nippo-staging-database-url --data-file="$path"
+Remove-Item $path
+```
+
+- 本番用は、シークレット名を `nippo-database-url` にして同じように登録する
+- シークレットが既にある場合(登録し直す場合)は、`gcloud secrets create` の代わりに `gcloud secrets versions add nippo-staging-database-url --data-file=-` を使う
+
+```bash
 gcloud secrets add-iam-policy-binding nippo-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 ```
 
-- `--data-file=-` では、コマンドの実行後に接続文字列を貼り付けて入力を終える。接続文字列をコマンドの引数やファイルに残さない
+- 登録できたかは、値を表示せずに `gcloud secrets versions list nippo-staging-database-url` で確かめる
 
 ### 2.6 初期管理者の作成(要件定義書 F-04)
 
@@ -175,6 +194,8 @@ unset DATABASE_URL
 | Read the runtime service account | `nippo-runtime` のサービスアカウントユーザーのロールがある(2.3) |
 
 - 認証で失敗する場合は、2.4 の `OWNER/nippo` がこのリポジトリ(`sakaishizue/nippo`)と一致しているか、`PROJECT_NUMBER` がプロジェクトIDではなく番号になっているかを確かめる
+- 認証で `invalid_target` になる場合は、3.1 の `GCP_WORKLOAD_IDENTITY_PROVIDER` のプロジェクト番号に、プール `github` とプロバイダー `github-actions` がない(別のプロジェクトで作った、作成が途中で失敗した)。`gcloud iam workload-identity-pools providers list --workload-identity-pool=github --location=global` で確かめ、なければ 2.4 をやり直す。作った直後は、反映まで数分かかることがある
+- 「API [iam.googleapis.com] not enabled」で失敗する場合は、2.1 の API の有効化で `iam.googleapis.com` が抜けている。`gcloud services enable iam.googleapis.com` を実行し、数分待ってから実行し直す
 
 ## 4. 本番へのリリース手順
 
