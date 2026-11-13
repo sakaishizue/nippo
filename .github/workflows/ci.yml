@@ -114,3 +114,31 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # ステージングへのデプロイ(deploy.yml)と同じ Dockerfile でイメージを作る
+      - name: Build the image
+        run: docker build -t nippo:ci .
+      # 作ったイメージが起動し、画面と API を配信できること。データベースを使わない URL だけを確かめる
+      - name: Smoke test the image
+        run: |
+          docker run -d --name nippo -p 8080:8080 -e DATABASE_URL=postgres://nobody:nobody@localhost:5432/none nippo:ci
+          curl -fsS --retry-connrefused --retry 20 --retry-delay 1 http://localhost:8080/api/v1/health
+          # 画面と、画面側のルーティングの URL で index.html を返す
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root"></div>'
+          curl -fsS http://localhost:8080/reports/1 | grep -q '<div id="root"></div>'
+          # ハッシュ付きのファイルは長く保存してよい
+          asset=$(curl -fsS http://localhost:8080/ | grep -o '/assets/[^"]*\.js' | head -1)
+          curl -fsSI "http://localhost:8080${asset}" | grep -qi '^cache-control: public, max-age=31536000, immutable'
+          # API の URL には画面を返さない
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/v1/no-such-api)" = "401"
+          # root 以外のユーザーで動いている
+          test "$(docker exec nippo id -u)" != "0"
+      - name: Show the container logs
+        if: failure()
+        run: docker logs nippo || true

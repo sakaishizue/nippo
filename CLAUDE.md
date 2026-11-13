@@ -25,7 +25,9 @@ API(`apps/api`、Hono):
 
 - `pnpm --filter @nippo/api dev`: 開発サーバー(ファイル監視付き)。`apps/api/.env.example` を `.env` にコピーして使う
 - `pnpm --filter @nippo/api build`: esbuild で `dist/server.js` の1ファイルにまとめる(設定は `build.mjs`)。`start` で起動する。ネイティブモジュールの `@node-rs/argon2` は、まとめずに実行時に node_modules から読み込む。CI でまとめたファイルを起動して確認している
-- ルートは `/api/v1` 配下。アプリの組み立ては `src/app.ts` の `createApp({ db, secureCookie })`、起動は `src/server.ts`
+- ルートは `/api/v1` 配下。アプリの組み立ては `src/app.ts` の `createApp({ db, secureCookie, webDir })`、起動は `src/server.ts`
+- 本番のイメージ(リポジトリの直下の `Dockerfile`)では、環境変数 `WEB_DIR` に置いた画面のビルド結果を、API が `/api` 以外の URL で配信する(`src/web.ts`)。画面のURLには `index.html` を返す。開発では `WEB_DIR` を設定せず、画面は Vite が配信する
+- イメージは CI の「Container image」でビルドし、起動して画面と API を返せるかを確かめる。この PC には Docker がないため、`Dockerfile` を変えたときは CI で確かめる
 - `/health` と `/auth/login` 以外のルートは、`app.ts` の認証とCSRFのミドルウェアより後に登録する。ログイン中のユーザーは `c.var.user`、セッションは `c.var.session`。ロールの制限は `requireRole("manager")`(`src/auth/middleware.ts`)
 - エラーは `AppError`(`src/errors.ts`)を投げる。ステータスコードはエラーコードから決まり、API仕様書 1.6 の形式で返る
 - 入力チェックは `validate()`(`src/validator.ts`)を使う。失敗すると `422 VALIDATION_ERROR` になる
