@@ -108,15 +108,24 @@ gcloud iam service-accounts add-iam-policy-binding github-deployer@PROJECT_ID.ia
 | `nippo-database-url` | 本番用プロジェクトの接続文字列 |
 | `nippo-staging-database-url` | ステージング用プロジェクトの接続文字列 |
 
-```bash
-gcloud secrets create nippo-database-url --data-file=-
-gcloud secrets create nippo-staging-database-url --data-file=-
+接続文字列は、画面に表示せず、シェルの履歴やファイルにも残さないように登録する。`read -rs` は入力した文字を表示せず、最後の改行も含めない(改行が入ると、接続に失敗する)。
 
+```bash
+read -rs DB_URL
+printf "%s" "$DB_URL" | gcloud secrets create nippo-staging-database-url --data-file=-
+unset DB_URL
+```
+
+- 1行目を実行したら、Neon の「Connect」で接続プール用(Connection pooling を有効)の接続文字列をコピーして貼り付け、Enter を押す
+- 本番用は、シークレット名を `nippo-database-url` にして同じように登録する
+- シークレットが既にある場合(登録し直す場合)は、`gcloud secrets create` の代わりに `gcloud secrets versions add nippo-staging-database-url --data-file=-` を使う
+
+```bash
 gcloud secrets add-iam-policy-binding nippo-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 ```
 
-- `--data-file=-` では、コマンドの実行後に接続文字列を貼り付けて入力を終える。接続文字列をコマンドの引数やファイルに残さない
+- 登録できたかは、値を表示せずに `gcloud secrets versions list nippo-staging-database-url` で確かめる
 
 ### 2.6 初期管理者の作成(要件定義書 F-04)
 
