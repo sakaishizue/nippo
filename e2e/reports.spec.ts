@@ -1,20 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
+import { heading, loginAs } from "./helpers";
 
 // SCR-03 日報一覧。データはテスト仕様書 3章(開発用のシード)
 // U1 の日報: 11月2日(承認済み)、3日(差し戻し、B株式会社への訪問)、4日(提出済み)、5日(下書き)。U3 は 11月4日(提出済み)
-const PASSWORD = "password123";
-// シードの日報だけが入る期間(他の画面テストが作る日報は 2000〜2025年)
+// シードの日報だけが入る期間(他の画面テストが作る日報は 1910〜1998年と、E2E-01 で毎回作るユーザーの今日の日報)
 const PERIOD = "from=2026-11-01&to=2026-11-10";
 
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
-
 const main = (page: Page) => page.getByRole("main");
-const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 /** 一覧の日付のリンク。PC は表、スマートフォンはカードのどちらか見えている方 */
 const reportLinks = (page: Page) =>
   main(page)

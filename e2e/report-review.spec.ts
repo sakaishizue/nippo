@@ -1,36 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
+import { heading, loginAs, uniquePastDate } from "./helpers";
 
 // SCR-05 日報詳細の承認、差し戻し、コメント。データはテスト仕様書 3章(開発用のシード)
 // シードの日報を変えないよう、テストごとに U2(上長は M1)の日報を作って提出してから操作する
-const PASSWORD = "password123";
-
-/** API でログインし、更新系のリクエストに付ける CSRFトークンを返す */
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-  return ((await res.json()) as { csrf_token: string }).csrf_token;
-};
-
-let sequence = 0;
-/**
- * 日報は1人1日1件で削除できないため、実行した時刻、ブラウザの種類、テストの順から、重ならない過去の日付を決める。
- * 日報入力の画面テスト(2000〜2025年)と重ならないよう、1970〜1999年を使う
- */
-const uniquePastDate = (projectName: string) => {
-  const projects = ["desktop-chrome", "desktop-edge", "iphone-safari", "android-chrome"];
-  const seconds = Math.floor(Date.now() / 1000) % 1300;
-  sequence += 1;
-  const offset = seconds * 8 + Math.max(0, projects.indexOf(projectName)) * 2 + (sequence % 2);
-  return new Date(Date.UTC(1970, 0, 1 + offset)).toISOString().slice(0, 10);
-};
 
 /** U2 の日報を作って提出し、日付とIDを返す */
 const submittedReportOfU2 = async (page: Page, projectName: string) => {
   const csrf = await loginAs(page, "u2@example.com");
   const headers = { "X-CSRF-Token": csrf };
-  const date = uniquePastDate(projectName);
+  const date = uniquePastDate(projectName, 1970);
   const created = await page.request.post("/api/v1/reports", {
     headers,
     data: {
@@ -49,7 +27,6 @@ const submittedReportOfU2 = async (page: Page, projectName: string) => {
   return { id, date };
 };
 
-const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 const info = (page: Page) => page.getByRole("region", { name: "日報の情報" });
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 

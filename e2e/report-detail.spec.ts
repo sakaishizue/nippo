@@ -1,15 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { heading, loginAs } from "./helpers";
 
 // SCR-05 日報詳細。データはテスト仕様書 3章(開発用のシード)
 // U1 の日報: 11月2日(R-app、承認済み)、3日(R-ret、差し戻し)、4日(R-sub、提出済み)、5日(R-draft、下書き)
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
 
 /** U1 の、指定した日付の日報のID(API の検索で探す) */
 const reportIdOf = async (page: Page, date: string) => {
@@ -21,7 +14,6 @@ const reportIdOf = async (page: Page, date: string) => {
   return id as number;
 };
 
-const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 const region = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
 
 // Issue #31 の受け入れ条件: U1 が自分の日報を開き、内容が表示される

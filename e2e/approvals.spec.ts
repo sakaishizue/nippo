@@ -1,15 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs } from "./helpers";
 
 // SCR-06 承認待ち一覧。データはテスト仕様書 3章(開発用のシード)
 // M1 の部下 U1 の R-sub(11月4日、11月4日 18:00 提出)は、提出から48時間以上経っている
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
 
 const main = (page: Page) => page.getByRole("main");
 /** 承認待ちの1件。PC は表の行、スマートフォンはカードのどちらか見えている方 */

@@ -1,17 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs } from "./helpers";
 
 // SCR-08 顧客一覧、SCR-09 顧客詳細、SCR-10 顧客登録・編集。データはテスト仕様書 3章(開発用のシード)
-const PASSWORD = "password123";
-
-/** ログインし、更新系の API に付ける CSRFトークンを返す */
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-  const { csrf_token: csrfToken } = (await res.json()) as { csrf_token: string };
-  return csrfToken;
-};
 
 /** テストのたびに違う顧客名(他のテストや前回の実行と重ならないように) */
 const uniqueName = (label: string, project: string) => `${label}-${project}-${Date.now()}`;

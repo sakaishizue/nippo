@@ -1,29 +1,7 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+import { asAdmin, loginAs, openMenu } from "./helpers";
 
 // SCR-15 ユーザー一覧、SCR-16 ユーザー登録・編集。ユーザーはテスト仕様書 3章(開発用のシード)
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
-
-const openMenu = async (page: Page) => {
-  const width = page.viewportSize()?.width ?? 1280;
-  if (width < 768) await page.getByRole("button", { name: "メニューを開く" }).click();
-};
-
-/** 管理者(A1)として API を呼ぶ。更新系には CSRFトークンを付ける */
-const asAdmin = async (request: APIRequestContext) => {
-  const login = await request.post("/api/v1/auth/login", {
-    data: { email: "a1@example.com", password: PASSWORD },
-  });
-  expect(login.status()).toBe(200);
-  const { csrf_token: csrfToken } = (await login.json()) as { csrf_token: string };
-  return { headers: { "X-CSRF-Token": csrfToken } };
-};
 
 /** 一覧(PC の表、スマホのカード)で、氏名のリンクを選ぶ */
 const userLink = (page: Page, name: string) =>

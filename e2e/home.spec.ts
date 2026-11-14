@@ -1,17 +1,9 @@
 import { expect, type Page, test } from "@playwright/test";
+import { heading, loginAs } from "./helpers";
 
 // SCR-02 ホーム。データはテスト仕様書 3章(開発用のシード)
 // U1 の日報: 11月2日(承認済み)、3日(差し戻し)、4日(提出済み)、5日(下書き)。今日の日報はない
-const PASSWORD = "password123";
 
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
-
-const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 const region = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
 
 test("一般のホームに、今日の日報、差し戻し中の日報、最近の日報を表示する", async ({ page }) => {

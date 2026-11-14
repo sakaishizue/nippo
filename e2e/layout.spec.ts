@@ -1,26 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs, openMenu, USERS } from "./helpers";
 
 // 共通レイアウト(画面定義書 3.1、3.2)。ユーザーはテスト仕様書 3章(開発用のシード)
-const USERS = {
-  A1: "a1@example.com",
-  M1: "m1@example.com",
-  U1: "u1@example.com",
-} as const;
-type User = keyof typeof USERS;
-
-const loginAs = async (page: Page, user: User) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email: USERS[user], password: "password123" },
-  });
-  expect(res.status()).toBe(200);
-};
-
-/** 768px 未満(スマートフォン)では、ハンバーガーメニューを開く */
-const openMenu = async (page: Page) => {
-  // 表示を待たずに isVisible() で判定すると、描画前に判定してしまうため、画面幅で決める
-  const width = page.viewportSize()?.width ?? 1280;
-  if (width < 768) await page.getByRole("button", { name: "メニューを開く" }).click();
-};
+type User = "A1" | "M1" | "U1";
 
 const menuLinks = (page: Page) =>
   page.getByRole("navigation", { name: "メニュー" }).filter({ visible: true }).getByRole("link");
@@ -34,7 +16,7 @@ const menus: readonly (readonly [User, string, readonly string[]])[] = [
 
 for (const [user, home, labels] of menus) {
   test(`${user} のメニューは画面定義書 3.1 のとおり`, async ({ page }) => {
-    await loginAs(page, user);
+    await loginAs(page, USERS[user]);
     await page.goto(home);
     await openMenu(page);
     await expect(menuLinks(page)).toHaveText(labels);
@@ -117,7 +99,7 @@ test.describe("スマートフォンの画面幅(375px)", () => {
     ["U1", "/admin/users"],
   ] as const) {
     test(`${user} で ${path} を開いても横スクロールが出ない`, async ({ page }) => {
-      await loginAs(page, user);
+      await loginAs(page, USERS[user]);
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await page.getByRole("button", { name: "メニューを開く" }).click();

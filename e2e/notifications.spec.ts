@@ -1,35 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs, uniquePastDate } from "./helpers";
 
 // SCR-14 通知一覧とヘッダーの未読数。データはテスト仕様書 3章(開発用のシード)
 // 他の画面テストと通知が混ざらないよう、U3(田中 三郎)と、その上長の M2 を使う
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-  return ((await res.json()) as { csrf_token: string }).csrf_token;
-};
-
-let sequence = 0;
-/**
- * 日報は1人1日1件で削除できないため、重ならない過去の日付を使う。
- * 他の画面テストと重ならないよう、1940〜1969年を使う
- */
-const uniquePastDate = (projectName: string) => {
-  const projects = ["desktop-chrome", "desktop-edge", "iphone-safari", "android-chrome"];
-  const seconds = Math.floor(Date.now() / 1000) % 1300;
-  sequence += 1;
-  const offset = seconds * 8 + Math.max(0, projects.indexOf(projectName)) * 2 + (sequence % 2);
-  return new Date(Date.UTC(1940, 0, 1 + offset)).toISOString().slice(0, 10);
-};
 
 /** U3 の日報を作って提出する(M2 に提出の通知が届く) */
 const submitReportOfU3 = async (page: Page, projectName: string) => {
   const csrf = await loginAs(page, "u3@example.com");
   const headers = { "X-CSRF-Token": csrf };
-  const date = uniquePastDate(projectName);
+  const date = uniquePastDate(projectName, 1940);
   const created = await page.request.post("/api/v1/reports", {
     headers,
     data: {

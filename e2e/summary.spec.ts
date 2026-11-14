@@ -1,17 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs } from "./helpers";
 
 // SCR-07 作業時間集計。データはテスト仕様書 3章(開発用のシード)
 // U1 の2026年11月の提出済みと承認済みの日報: 訪問180分(A株式会社、新サービス導入)、移動60分
-// 他の画面テストが作る日報は1940〜2025年のため、2026年11月の集計には入らない
-const PASSWORD = "password123";
+// 他の画面テストが作る日報は1910〜1998年か、E2E-01 で毎回作るユーザーの日報のため、U1 と M1 の集計には入らない
 const NOVEMBER = "from=2026-11-01&to=2026-11-30";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
 
 const table = (page: Page) => page.getByRole("table", { name: /作業時間の集計/ });
 /** 集計結果の行を「項目名:時間:割合」にする */
