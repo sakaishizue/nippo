@@ -1,0 +1,22 @@
+{
+  "displayName": "Cloud Run ジョブの失敗",
+  "documentation": {
+    "content": "Cloud Run ジョブ(バックアップ、リマインド)の実行が失敗しました。Cloud Run のコンソールで、ジョブの実行のログを確かめてください(CI/CD 設定手順書 2.7)。",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "ジョブの実行が失敗した",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_job\" AND metric.type = \"run.googleapis.com/job/completed_execution_count\" AND metric.labels.result = \"failed\"",
+        "aggregations": [{ "alignmentPeriod": "300s", "perSeriesAligner": "ALIGN_SUM" }],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": { "count": 1 }
+      }
+    }
+  ],
+  "alertStrategy": { "autoClose": "86400s" }
+}
