@@ -44,6 +44,12 @@ API(`apps/api`、Hono):
 - クライアントは `apps/api/generated/prisma/` に生成する(Git に含めない)。`pnpm generate` で生成し、`pnpm typecheck` と `pnpm test` は実行前に自動で生成する
 - ローカルの DB: `docker compose up -d`(ルート)で起動する。Docker がない場合は `pnpm --filter @nippo/api exec prisma dev --detach` で代用し、表示されたURLを `DIRECT_URL` と `DATABASE_URL` に設定する。`prisma dev` は同時接続に対応しないため、`apps/api/.env` に `DATABASE_POOL_MAX=1` も設定する(設定しないと、画面が API を並行して呼んだときに「bind message supplies ... parameters」などで 500 になる)
 - スキーマを変えたら `pnpm --filter @nippo/api db:migrate --name <変更内容>` でマイグレーションを作る。マイグレーションのファイルは手で書き換えない
+- ステージングと本番では、新しいバージョンをデプロイする前にマイグレーションを適用する(`deploy.yml`、`release.yml`)。適用した後もしばらくは古いバージョンが動く(本番は確認用URLで確かめて切り替えるまで)ため、古いバージョンでも動くマイグレーションにする
+  - 列とテーブルの追加は先にする。NOT NULL の列は既定値を付けるか、NULL を許して追加し、後のリリースで埋めてから NOT NULL にする
+  - 列とテーブルの削除は、2回のリリースに分ける。1回目でコードから使うのをやめ、2回目で削除する
+  - 名前の変更はしない。新しい列を追加し、データを移して、使うのをやめてから古い列を削除する
+  - 一意の制約や NOT NULL などを厳しくするときは、既存のデータを直してからにする
+  - 列挙値は、追加を先にする。削除は、どのバージョンも使わなくなってからにする
 - 列挙値は `@nippo/shared` と一致させる(`apps/api/src/schema.test.ts` で確認する)
 - `prisma migrate reset` など、データを消す操作は利用者の同意なしに実行しない
 - `pnpm --filter @nippo/api db:seed`: 開発用のデータベースに、テスト仕様書 3章のデータを入れる。ユーザーが1人でもいれば何もしない
