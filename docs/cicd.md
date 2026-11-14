@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-14 / 状態: 初版(Dockerfile を追加)
+> 更新日: 2026-11-14 / 状態: 初版(Dockerfile とデプロイ時のマイグレーションを追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -102,12 +102,14 @@ gcloud iam service-accounts add-iam-policy-binding github-deployer@PROJECT_ID.ia
 - 「Connect」で表示される接続文字列のうち、アプリには接続プール用(ホスト名に `-pooler` が付くもの)を使う。マイグレーションには直接接続の接続文字列を使う(ステージングと本番へのマイグレーションの手順は、5章の「マイグレーション」で追加する)
 - 接続文字列にはパスワードが含まれるため、ファイルやチャットに貼らない。次の Secret Manager への登録で、画面に直接貼り付ける
 
-本番用とステージング用の接続文字列(接続プール用)を、Secret Manager に登録する。
+本番用とステージング用の接続文字列を、Secret Manager に登録する。アプリは接続プール用、マイグレーションは直接接続用を使う(接続プール用では、マイグレーションの排他ができないため)。
 
-| シークレット名 | 内容 |
-| --- | --- |
-| `nippo-database-url` | 本番用プロジェクトの接続文字列 |
-| `nippo-staging-database-url` | ステージング用プロジェクトの接続文字列 |
+| シークレット名 | 内容 | 読むサービスアカウント |
+| --- | --- | --- |
+| `nippo-database-url` | 本番用プロジェクトの接続文字列(接続プール用) | `nippo-runtime`(アプリ) |
+| `nippo-staging-database-url` | ステージング用プロジェクトの接続文字列(接続プール用) | `nippo-runtime`(アプリ) |
+| `nippo-database-direct-url` | 本番用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション) |
+| `nippo-staging-database-direct-url` | ステージング用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション) |
 
 接続文字列は、画面に表示せず、シェルの履歴やファイルにも残さないように登録する。`read -rs` は入力した文字を表示せず、最後の改行も含めない(改行が入ると、接続に失敗する)。
 
@@ -129,24 +131,40 @@ Remove-Item $path
 ```
 
 - 本番用は、シークレット名を `nippo-database-url` にして同じように登録する
+- 直接接続用は、Neon の「Connect」で Connection pooling を無効にした接続文字列(ホスト名に `-pooler` が付かないもの)を、シークレット名を `nippo-staging-database-direct-url`、`nippo-database-direct-url` にして同じように登録する
 - シークレットが既にある場合(登録し直す場合)は、`gcloud secrets create` の代わりに `gcloud secrets versions add nippo-staging-database-url --data-file=-` を使う
 
 ```bash
 gcloud secrets add-iam-policy-binding nippo-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding nippo-staging-database-url --member="serviceAccount:nippo-runtime@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding nippo-database-direct-url --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding nippo-staging-database-direct-url --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 ```
+
+- 権限はシークレットごとに付ける。`nippo-runtime` は直接接続用を読めず、`github-deployer` は接続プール用を読めない
 
 - 登録できたかは、値を表示せずに `gcloud secrets versions list nippo-staging-database-url` で確かめる
 
 ### 2.6 初期管理者の作成(要件定義書 F-04)
 
-画面からは管理者がいないとユーザーを登録できないため、ステージングと本番のそれぞれで、最初の管理者を一度だけコマンドで作る。マイグレーションを適用した後に、リポジトリを取得した手元の PC から実行する。
+画面からは管理者がいないとユーザーを登録できないため、ステージングと本番のそれぞれで、最初の管理者を一度だけコマンドで作る。マイグレーションを適用した後(デプロイが一度成功した後)に、リポジトリを取得した手元の PC から実行する。
 
 ```bash
 export DATABASE_URL="$(gcloud secrets versions access latest --secret=nippo-staging-database-url)"
 pnpm --filter @nippo/api create-admin --name "管理者の氏名" --email admin@example.com
 unset DATABASE_URL
 ```
+
+Windows の PowerShell では、次のようにする。
+
+```powershell
+$env:DATABASE_URL = gcloud secrets versions access latest --secret=nippo-staging-database-url
+pnpm.cmd --filter @nippo/api create-admin --name "管理者の氏名" --email admin@example.com
+Remove-Item Env:DATABASE_URL
+```
+
+- 環境変数 `DATABASE_URL` は、`apps/api/.env` の値より優先される。終わったら必ず消す(消し忘れると、手元の開発でステージングや本番のデータベースにつながる)
 
 - 本番では、シークレット名を `nippo-database-url` にする
 - パスワードはコマンドの実行後に画面で入力する(入力した文字は表示されない)。シェルの履歴に残らないよう、引数(`--password`)では指定できない
@@ -202,7 +220,7 @@ unset DATABASE_URL
 
 1. main にマージすると、CI の成功後にステージングへ自動でデプロイされる
 2. ステージングで画面テストと動作確認を行う
-3. Actions 画面で「Release production」を開き、`step=deploy` で実行する。ステージングで確認したコミットのSHAを `sha` に入力する。承認者が「Review deployments」で承認すると動き出す
+3. Actions 画面で「Release production」を開き、`step=deploy` で実行する。ステージングで確認したコミットのSHAを `sha` に入力する。承認者が「Review deployments」で承認すると動き出し、本番のデータベースにマイグレーションを適用してからデプロイする
 4. 実行結果に表示される確認用URLで、表示を確認する。本番のデータベースにつながるため、データを変更する操作はしない
 5. 問題がなければ、同じ `sha` で `step=promote` を実行し、承認して、利用者のアクセスを切り替える
 6. 問題が起きた場合は、Cloud Run のコンソールで前のリビジョンにトラフィックを戻す
@@ -214,5 +232,5 @@ unset DATABASE_URL
 | 項目 | 内容 |
 | --- | --- |
 | `Dockerfile` | 追加済み。3段階でビルドする(1. 依存パッケージを入れて画面と API をビルド、2. `@node-rs/argon2`(ネイティブモジュール)だけを入れる、3. ビルドした画面(`public/`)と API(`dist/`)と、2 の node_modules だけをまとめる)。環境変数 `WEB_DIR=public` で API が画面を配信し、`PORT`(Cloud Run が渡す。既定は8080)で待ち受ける。`node` ユーザー(root 以外)で動かす。リマインドのジョブも同じイメージで `node dist/reminder.js` を実行する |
-| マイグレーション | デプロイの前に、Prisma のマイグレーションを実行する手順を追加する |
+| マイグレーション | 追加済み。Deploy staging はイメージを作った後、Release production は `step=deploy` で承認された後に、`nippo-staging-database-direct-url` か `nippo-database-direct-url` を読んで `prisma migrate deploy` を実行してから、新しいバージョンをデプロイする。マイグレーションが失敗したらデプロイしない。古いバージョンでも動くマイグレーションにする(CLAUDE.md) |
 | 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブにし、Cloud Scheduler から平日の朝9時(`0 9 * * 1-5`、タイムゾーン `Asia/Tokyo`)に起動する。祝日はジョブの中で判定して何もしない |

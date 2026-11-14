@@ -12,7 +12,8 @@ playwright-report
 test-results
 coverage
 **/*.test.ts
-# 接続文字列などをイメージに入れない
+# 接続文字列や、GitHub Actions の認証情報のファイル(google-github-actions/auth が作る)をイメージに入れない
+gha-creds-*.json
 **/.env
 **/.env.*
 !**/.env.example

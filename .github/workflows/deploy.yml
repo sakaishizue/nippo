@@ -32,29 +32,29 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Skip until the app has a Dockerfile
-        id: dockerfile
-        run: |
-          if [ -f Dockerfile ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Dockerfile がないため、デプロイをスキップします"
-          fi
       - uses: google-github-actions/auth@v3
-        if: steps.dockerfile.outputs.exists == 'true'
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
-        if: steps.dockerfile.outputs.exists == 'true'
       - name: Build and push image
-        if: steps.dockerfile.outputs.exists == 'true'
         run: |
           gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
+      # マイグレーションは、イメージを作れた後、新しいバージョンを動かす前に適用する(CI/CD 設定手順書 5章)
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - name: Apply database migrations
+        run: |
+          # 直接接続の接続文字列(接続プール用ではマイグレーションの排他ができない)。ログに出さず、ファイルにも書かない
+          DIRECT_URL="$(gcloud secrets versions access latest --secret=nippo-staging-database-direct-url)"
+          echo "::add-mask::$DIRECT_URL"
+          DIRECT_URL="$DIRECT_URL" pnpm --filter @nippo/api db:migrate:deploy
       - id: deploy
-        if: steps.dockerfile.outputs.exists == 'true'
         uses: google-github-actions/deploy-cloudrun@v3
         with:
           service: nippo-staging
