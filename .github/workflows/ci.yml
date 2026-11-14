@@ -143,3 +143,62 @@ jobs:
       - name: Show the container logs
         if: failure()
         run: docker logs nippo || true
+
+  backup:
+    name: Backup image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 書き出すデータベース。Neon より古い版でも書き出せることを兼ねて、他のジョブと同じ版にする
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: nippo
+          POSTGRES_PASSWORD: nippo
+          POSTGRES_DB: nippo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nippo -d nippo"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DB: postgres://nippo:nippo@localhost:5432
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      # デプロイ(deploy.yml)と同じ Dockerfile でイメージを作る
+      - name: Build the backup image
+        run: docker build -t nippo-backup:ci backup
+      # 偽のメタデータサーバーと Cloud Storage に保存し、保存したファイルから別のデータベースに復元できること
+      - name: Back up and restore
+        run: |
+          bucket="$RUNNER_TEMP/bucket"
+          mkdir -p "$bucket"
+          node backup/fake-gcs.mjs "$bucket" &
+          curl -sS -o /dev/null --retry 20 --retry-delay 1 --retry-all-errors http://localhost:8099/
+          psql() { docker run --rm --network host --entrypoint psql nippo-backup:ci -v ON_ERROR_STOP=1 "$@"; }
+          psql "$DB/nippo" -c "CREATE TABLE daily_reports (id int PRIMARY KEY, reflection text)" \
+            -c "INSERT INTO daily_reports SELECT i, '所感 ' || i FROM generate_series(1, 1000) AS i"
+          run_backup() {
+            docker run --rm --network host -e DATABASE_URL="$1" -e BUCKET=ci-bucket \
+              -e STORAGE_API=http://localhost:8099 -e METADATA_URL=http://localhost:8099 nippo-backup:ci
+          }
+          run_backup "$DB/nippo"
+          test "$(ls "$bucket" | wc -l)" = "1"
+          file="$(ls "$bucket")"
+          echo "$file" | grep -Eq '^nippo-[0-9]{8}T[0-9]{6}Z\.dump$'
+          # CI/CD 設定手順書 6章の手順と同じオプションで復元する
+          psql "$DB/nippo" -c "CREATE DATABASE nippo_restore"
+          docker run --rm --network host -v "$bucket:/backup:ro" --entrypoint pg_restore nippo-backup:ci \
+            --no-owner --no-acl --exit-on-error --dbname="$DB/nippo_restore" "/backup/$file"
+          test "$(psql "$DB/nippo_restore" -tAc "SELECT count(*) || ' ' || max(reflection) FROM daily_reports")" = "1000 所感 999"
+          # 書き出しに失敗したら、0 以外で終わり、何も保存しない
+          if run_backup "postgres://nippo:wrong@localhost:5432/nippo"; then
+            echo "::error::接続に失敗しても成功になった"
+            exit 1
+          fi
+          test "$(ls "$bucket" | wc -l)" = "1"

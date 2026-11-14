@@ -18,6 +18,8 @@ permissions:
 env:
   REGION: asia-southeast1
   IMAGE: asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/app:${{ github.event.workflow_run.head_sha }}
+  # バックアップのジョブのイメージ(backup/Dockerfile)。本番(release.yml)も同じイメージを使う
+  BACKUP_IMAGE: asia-southeast1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/backup:${{ github.event.workflow_run.head_sha }}
 
 jobs:
   deploy:
@@ -42,6 +44,8 @@ jobs:
           gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
+          docker build -t "$BACKUP_IMAGE" backup
+          docker push "$BACKUP_IMAGE"
       # マイグレーションは、イメージを作れた後、新しいバージョンを動かす前に適用する(CI/CD 設定手順書 5章)
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
@@ -63,3 +67,11 @@ jobs:
           flags: --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }} --allow-unauthenticated
           secrets: |
             DATABASE_URL=nippo-staging-database-url:latest
+      # バックアップのジョブ(CI/CD 設定手順書 2.7)。ステージングは定期実行せず、確認するときに手動で実行する
+      - name: Deploy the backup job
+        run: |
+          gcloud run jobs deploy nippo-backup-staging --region "$REGION" --image "$BACKUP_IMAGE" \
+            --service-account "nippo-backup-staging@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --set-secrets DATABASE_URL=nippo-staging-database-direct-url:latest \
+            --set-env-vars BUCKET=${{ vars.GCP_PROJECT_ID }}-staging-backup \
+            --tasks 1 --max-retries 1 --task-timeout 30m --memory 1Gi --quiet

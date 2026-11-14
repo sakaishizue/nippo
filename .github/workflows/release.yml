@@ -45,6 +45,7 @@ jobs:
             exit 1
           fi
           echo "IMAGE=${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/app:${SHA}" >> "$GITHUB_ENV"
+          echo "BACKUP_IMAGE=${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nippo/backup:${SHA}" >> "$GITHUB_ENV"
           echo "TAG=rc-${SHA::7}" >> "$GITHUB_ENV"
       # マイグレーションは、出すバージョンのコードで、デプロイの前に適用する(CI/CD 設定手順書 5章)。
       # 確認用URLの段階で本番のデータベースの構造が変わるため、古いバージョンでも動くマイグレーションにする(CLAUDE.md)。
@@ -95,6 +96,16 @@ jobs:
           flags: --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }} --allow-unauthenticated
           secrets: |
             DATABASE_URL=nippo-database-url:latest
+      # バックアップのジョブ(CI/CD 設定手順書 2.7)。ステージングで作ったイメージを使う。
+      # 書き出すだけで利用者の操作に影響しないため、確認用URLの段階(step=deploy)で更新する
+      - name: Deploy the backup job
+        if: inputs.step == 'deploy'
+        run: |
+          gcloud run jobs deploy nippo-backup --region "$REGION" --image "$BACKUP_IMAGE" \
+            --service-account "nippo-backup@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --set-secrets DATABASE_URL=nippo-database-direct-url:latest \
+            --set-env-vars BUCKET=${{ vars.GCP_PROJECT_ID }}-backup \
+            --tasks 1 --max-retries 1 --task-timeout 30m --memory 1Gi --quiet
       - if: inputs.step == 'promote'
         uses: google-github-actions/deploy-cloudrun@v3
         with:

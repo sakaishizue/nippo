@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-14 / 状態: 初版(Dockerfile とデプロイ時のマイグレーションを追加)
+> 更新日: 2026-11-14 / 状態: 初版(バックアップと復元の手順を追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -17,14 +17,14 @@ flowchart LR
 
 | ワークフロー | ファイル | 実行のきっかけ | 内容 |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行)、イメージのビルドと起動の確認(「Container image」) |
-| Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする |
-| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし、`step=promote` で切り替える |
+| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行)、イメージのビルドと起動の確認(「Container image」)、バックアップのイメージで書き出しと復元の確認(「Backup image」) |
+| Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする。バックアップのジョブも更新する(2.7) |
+| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし(バックアップのジョブも更新する)、`step=promote` で切り替える |
 | Check Google Cloud access | `.github/workflows/gcp-auth-check.yml` | 手動実行 | Workload Identity 連携で認証できるか、デプロイに使う権限があるかを、読み取りだけで確かめる(3.4) |
 
 - 本番へのデプロイは手動実行とし、さらに `production` の Environment の承認者(Required reviewers)が承認してから動くようにする。リポジトリは公開のため、GitHub の無料プランでも承認者を設定できる。誤った実行や、ステージングで確認していないバージョンの公開を防ぐため
 - イメージはリポジトリの直下の `Dockerfile` で作る。画面のビルド結果と API を1つのイメージにまとめ、API が `/api` 以外の URL で画面を配信する(5章)
-- 「Container image」は、ブランチの保護で必須にはしていない(3.3)。イメージを変えたプルリクエストでは、成功を確かめてからマージする
+- 「Container image」と「Backup image」は、ブランチの保護で必須にはしていない(3.3)。イメージを変えたプルリクエストでは、成功を確かめてからマージする
 - Google Cloud への認証は Workload Identity 連携を使い、サービスアカウントのキーは発行しない
 
 ## 2. Google Cloud の初期設定
@@ -108,8 +108,8 @@ gcloud iam service-accounts add-iam-policy-binding github-deployer@PROJECT_ID.ia
 | --- | --- | --- |
 | `nippo-database-url` | 本番用プロジェクトの接続文字列(接続プール用) | `nippo-runtime`(アプリ) |
 | `nippo-staging-database-url` | ステージング用プロジェクトの接続文字列(接続プール用) | `nippo-runtime`(アプリ) |
-| `nippo-database-direct-url` | 本番用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション) |
-| `nippo-staging-database-direct-url` | ステージング用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション) |
+| `nippo-database-direct-url` | 本番用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション)、`nippo-backup`(バックアップ、2.7) |
+| `nippo-staging-database-direct-url` | ステージング用プロジェクトの接続文字列(直接接続) | `github-deployer`(デプロイの前のマイグレーション)、`nippo-backup-staging`(バックアップ、2.7) |
 
 接続文字列は、画面に表示せず、シェルの履歴やファイルにも残さないように登録する。`read -rs` は入力した文字を表示せず、最後の改行も含めない(改行が入ると、接続に失敗する)。
 
@@ -171,6 +171,77 @@ Remove-Item Env:DATABASE_URL
 - 端末がない環境では、環境変数 `ADMIN_PASSWORD` で渡せる。ただしコマンドの行に直接書くとシェルの履歴に残るため、通常は画面で入力する
 - 同じメールアドレスのユーザーがいるとエラーになる。2人目以降の管理者は、画面のユーザー管理から登録する
 
+### 2.7 バックアップ(要件定義書 5章、技術選定書 3.5)
+
+Cloud Run ジョブで毎日、データベースの全データを `pg_dump` で書き出し(custom 形式。圧縮済み)、Cloud Storage のバケットに保存する。7日を過ぎたファイルは自動で削除する(技術選定書 7章)。復元の手順は6章。
+
+| 項目 | 本番用 | ステージング用 |
+| --- | --- | --- |
+| Cloud Run ジョブ | `nippo-backup` | `nippo-backup-staging` |
+| サービスアカウント | `nippo-backup` | `nippo-backup-staging` |
+| 読む接続文字列 | `nippo-database-direct-url` | `nippo-staging-database-direct-url` |
+| 保存先のバケット | `PROJECT_ID-backup` | `PROJECT_ID-staging-backup` |
+| 定期実行 | Cloud Scheduler で毎日(#47) | しない。確認するときに手動で実行する(技術選定書 3.7) |
+
+- ジョブのイメージは `backup/Dockerfile`(PostgreSQL の公式イメージに `backup/backup.sh` を入れたもの)。Deploy staging がイメージを作ってステージングのジョブを更新し、Release production の `step=deploy` が同じイメージで本番のジョブを更新する。ジョブの設定(接続文字列、バケット、タイムアウトなど)はワークフローに書いてある
+- `pg_dump` は、データベースと同じか新しい版の PostgreSQL でないと書き出せない。イメージは PostgreSQL 18。Neon のプロジェクトの「Settings」で Postgres のバージョンが18以下であることを確かめる。Neon を19以上にするときは、先に `backup/Dockerfile` の版を上げる
+- ジョブのサービスアカウントは、自分の環境の直接接続の接続文字列と、自分の環境のバケットへの書き込み(作成のみ)だけができる。バックアップの上書きや削除はできない
+- 本番とステージングでサービスアカウントとバケットを分け、ステージングのジョブからは本番のデータに触れないようにする
+
+以下は、Deploy staging が新しいジョブを作る前(このワークフローの変更を main にマージする前)に実行する。
+
+```bash
+gcloud services enable storage.googleapis.com monitoring.googleapis.com
+
+gcloud storage buckets create gs://PROJECT_ID-backup --location=asia-southeast1 --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets create gs://PROJECT_ID-staging-backup --location=asia-southeast1 --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets update gs://PROJECT_ID-backup --lifecycle-file=backup/lifecycle.json
+gcloud storage buckets update gs://PROJECT_ID-staging-backup --lifecycle-file=backup/lifecycle.json
+
+gcloud iam service-accounts create nippo-backup
+gcloud iam service-accounts create nippo-backup-staging
+
+gcloud storage buckets add-iam-policy-binding gs://PROJECT_ID-backup --member="serviceAccount:nippo-backup@PROJECT_ID.iam.gserviceaccount.com" --role="roles/storage.objectCreator"
+gcloud storage buckets add-iam-policy-binding gs://PROJECT_ID-staging-backup --member="serviceAccount:nippo-backup-staging@PROJECT_ID.iam.gserviceaccount.com" --role="roles/storage.objectCreator"
+gcloud secrets add-iam-policy-binding nippo-database-direct-url --member="serviceAccount:nippo-backup@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding nippo-staging-database-direct-url --member="serviceAccount:nippo-backup-staging@PROJECT_ID.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
+
+gcloud iam service-accounts add-iam-policy-binding nippo-backup@PROJECT_ID.iam.gserviceaccount.com --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
+gcloud iam service-accounts add-iam-policy-binding nippo-backup-staging@PROJECT_ID.iam.gserviceaccount.com --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
+```
+
+- `--lifecycle-file` はリポジトリのファイルを指すため、リポジトリのフォルダで実行する(Cloud Shell では、`backup/lifecycle.json` の内容のファイルを作ってから実行する)
+- 最後の2行は、GitHub Actions(`github-deployer`)がジョブにこのサービスアカウントを設定するために要る
+- 設定したら「Check Google Cloud access」を実行し、「Read the backup service accounts」が成功することを確かめる(3.4)
+
+**失敗の通知(テスト仕様書 NFR-12)**
+
+Cloud Run ジョブの実行が失敗したら、Cloud Monitoring からメールで知らせる。リマインドのジョブ(#47)の失敗も、同じ設定で知らせる。
+
+```bash
+gcloud beta monitoring channels create --display-name="nippo admin" --type=email --channel-labels=email_address=EMAIL
+gcloud beta monitoring channels list --format="value(name,displayName)"
+gcloud monitoring policies create --policy-from-file=backup/alert-policy.json --notification-channels=CHANNEL_NAME
+```
+
+- `EMAIL` は通知を受け取るメールアドレス。1行目の結果(または2行目)で表示される `projects/PROJECT_ID/notificationChannels/数字` を `CHANNEL_NAME` にする
+- 表示名は英字にする。Windows の PowerShell では、日本語の引数が gcloud に正しく渡らず、通知先を作れないことがある
+- アラートの条件は `backup/alert-policy.json`。ジョブの実行(再試行を含めて最後まで失敗したもの)が1件でもあれば通知する
+
+**動作の確認(ステージング)**
+
+```bash
+gcloud run jobs execute nippo-backup-staging --region=asia-southeast1 --wait
+gcloud storage ls -l gs://PROJECT_ID-staging-backup/
+```
+
+- 実行が成功し、バケットに `nippo-年月日T時分秒Z.dump`(日時は UTC)ができていればよい。ログは Cloud Run のコンソールのジョブの「ログ」で見られる
+- 失敗の通知は、存在しないバケットを指定して実行し、失敗させて確かめる。数分後にメールが届く
+
+```bash
+gcloud run jobs execute nippo-backup-staging --region=asia-southeast1 --update-env-vars=BUCKET=PROJECT_ID-no-such-bucket --wait
+```
+
 ## 3. GitHub の設定
 
 ### 3.1 リポジトリの変数(Settings → Secrets and variables → Actions → Variables)
@@ -202,7 +273,7 @@ Remove-Item Env:DATABASE_URL
 
 ### 3.4 設定の確認
 
-2章と3.1、3.2の設定が終わったら、Actions 画面で「Check Google Cloud access」を手動で実行する。次のすべてが成功すれば、設定は完了。
+2章(2.7 を含む)と3.1、3.2の設定が終わったら、Actions 画面で「Check Google Cloud access」を手動で実行する。次のすべてが成功すれば、設定は完了。
 
 | 手順 | 確かめること |
 | --- | --- |
@@ -211,6 +282,7 @@ Remove-Item Env:DATABASE_URL
 | Read Artifact Registry | イメージの保管場所があり、書き込みのロールで読める(2.2、2.3) |
 | Read Cloud Run | Cloud Run 管理者のロールがある(2.3) |
 | Read the runtime service account | `nippo-runtime` のサービスアカウントユーザーのロールがある(2.3) |
+| Read the backup service accounts | `nippo-backup`、`nippo-backup-staging` があり、サービスアカウントユーザーのロールがある(2.7) |
 
 - 認証で失敗する場合は、2.4 の `OWNER/nippo` がこのリポジトリ(`sakaishizue/nippo`)と一致しているか、`PROJECT_NUMBER` がプロジェクトIDではなく番号になっているかを確かめる
 - 認証で `invalid_target` になる場合は、3.1 の `GCP_WORKLOAD_IDENTITY_PROVIDER` のプロジェクト番号に、プール `github` とプロバイダー `github-actions` がない(別のプロジェクトで作った、作成が途中で失敗した)。`gcloud iam workload-identity-pools providers list --workload-identity-pool=github --location=global` で確かめ、なければ 2.4 をやり直す。作った直後は、反映まで数分かかることがある
@@ -233,4 +305,49 @@ Remove-Item Env:DATABASE_URL
 | --- | --- |
 | `Dockerfile` | 追加済み。3段階でビルドする(1. 依存パッケージを入れて画面と API をビルド、2. `@node-rs/argon2`(ネイティブモジュール)だけを入れる、3. ビルドした画面(`public/`)と API(`dist/`)と、2 の node_modules だけをまとめる)。環境変数 `WEB_DIR=public` で API が画面を配信し、`PORT`(Cloud Run が渡す。既定は8080)で待ち受ける。`node` ユーザー(root 以外)で動かす。リマインドのジョブも同じイメージで `node dist/reminder.js` を実行する |
 | マイグレーション | 追加済み。Deploy staging はイメージを作った後、Release production は `step=deploy` で承認された後に、`nippo-staging-database-direct-url` か `nippo-database-direct-url` を読んで `prisma migrate deploy` を実行してから、新しいバージョンをデプロイする。マイグレーションが失敗したらデプロイしない。古いバージョンでも動くマイグレーションにする(CLAUDE.md) |
+| バックアップ | 追加済み(2.7、6章)。`backup/Dockerfile` のイメージを、Deploy staging がステージングのジョブ、Release production が本番のジョブにデプロイする。CI の「Backup image」で、イメージで書き出してから別のデータベースに復元できることを確かめる |
 | 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブにし、Cloud Scheduler から平日の朝9時(`0 9 * * 1-5`、タイムゾーン `Asia/Tokyo`)に起動する。祝日はジョブの中で判定して何もしない |
+
+## 6. バックアップからの復元
+
+バックアップのファイル(2.7)を、新しい Neon のプロジェクトに復元する。手元の PC には PostgreSQL がないため、Google Cloud のコンソールの Cloud Shell(Docker が使える)で、バックアップのイメージと同じ版の PostgreSQL の公式イメージを使って `pg_restore` を実行する。
+
+**1. 復元先を作る**
+
+Neon のコンソールで、復元先のプロジェクトを作る(2.5 と同じ設定。名前は `nippo-restore` など)。復元の確認(テスト仕様書 NFR-11)のときは一時的なプロジェクトにし、確認後に削除する。
+
+**2. Cloud Shell で復元する**
+
+```bash
+gcloud config set project PROJECT_ID
+gcloud storage ls -l gs://PROJECT_ID-staging-backup/
+gcloud storage cp gs://PROJECT_ID-staging-backup/FILE .
+read -rs RESTORE_URL
+docker run --rm -e RESTORE_URL -v "$PWD:/backup:ro" postgres:18.6-alpine sh -c 'pg_restore --no-owner --no-acl --exit-on-error --dbname="$RESTORE_URL" "/backup/$0"' FILE
+unset RESTORE_URL
+rm FILE
+```
+
+- 本番のバックアップは、バケットを `PROJECT_ID-backup` にする。`FILE` は2行目で表示されるファイル名(`nippo-20261115T180000Z.dump` など)。日時は UTC
+- `read -rs` では、復元先のプロジェクトの直接接続の接続文字列(`-pooler` の付かないもの)を貼り付けて Enter を押す。画面と履歴に残らない
+- テーブル、データ、マイグレーションの履歴(`_prisma_migrations`)がそのまま戻る。エラーが出たら途中で止まる(`--exit-on-error`)。その場合は、復元先のプロジェクトを作り直してからやり直す
+- バックアップのファイルには実データが入っているため、Cloud Shell に残さない(最後の行で消す)
+
+**3. 復元したデータを画面で確かめる**
+
+手元の PC で、復元先のデータベースにつないで API と画面を起動し、ログインして日報を開く。PowerShell では次のようにする。
+
+```powershell
+$secure = Read-Host -AsSecureString "接続文字列"
+$env:DATABASE_URL = [System.Net.NetworkCredential]::new("", $secure).Password
+pnpm.cmd dev
+Remove-Item Env:DATABASE_URL
+```
+
+- 接続文字列は、復元先のプロジェクトの接続プール用を貼り付ける。`http://localhost:5173` を開き、バックアップを取った環境のユーザーでログインする
+- 確認が終わったら `Ctrl+C` で止め、最後の行で環境変数を消す(2.6 と同じ理由)
+- 復元の確認(NFR-11)では、事前にステージングで日報を提出しておき、管理者でログインしてその日報を開けることを確かめる。確認後、Neon のコンソールで一時的なプロジェクトを削除する
+
+**本番のデータベースを入れ替える場合**
+
+本番のデータが壊れた場合などは、復元したプロジェクトを本番として使う。2.5 の手順で `nippo-database-url` と `nippo-database-direct-url` に新しいバージョン(`gcloud secrets versions add`)を登録し、`gcloud run services update nippo --region=asia-southeast1 --update-labels=restored-at=日付` などで新しいリビジョンを作って、新しい接続文字列を読み込ませる。

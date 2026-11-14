@@ -48,3 +48,9 @@ jobs:
       # サービスアカウントユーザーのロールがあれば、nippo-runtime の情報を読める
       - name: Read the runtime service account (iam.serviceAccountUser)
         run: gcloud iam service-accounts describe "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" --project "${{ vars.GCP_PROJECT_ID }}" --format="value(email)"
+      # バックアップのジョブのサービスアカウント(2.7)。ジョブのデプロイにサービスアカウントユーザーのロールが要る
+      - name: Read the backup service accounts (iam.serviceAccountUser)
+        run: |
+          for sa in nippo-backup nippo-backup-staging; do
+            gcloud iam service-accounts describe "${sa}@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com" --project "${{ vars.GCP_PROJECT_ID }}" --format="value(email)"
+          done
