@@ -128,7 +128,8 @@ jobs:
       - name: Smoke test the image
         run: |
           docker run -d --name nippo -p 8080:8080 -e DATABASE_URL=postgres://nobody:nobody@localhost:5432/none nippo:ci
-          curl -fsS --retry-connrefused --retry 20 --retry-delay 1 http://localhost:8080/api/v1/health
+          # 起動するまでは、Docker の転送が接続を受けてすぐ切るため(connection reset)、どのエラーでも再試行する
+          curl -fsS --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/api/v1/health
           # 画面と、画面側のルーティングの URL で index.html を返す
           curl -fsS http://localhost:8080/ | grep -q '<div id="root"></div>'
           curl -fsS http://localhost:8080/reports/1 | grep -q '<div id="root"></div>'
