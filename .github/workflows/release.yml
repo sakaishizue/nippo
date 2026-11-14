@@ -112,3 +112,14 @@ jobs:
           service: nippo
           region: ${{ env.REGION }}
           tag_traffic: ${{ env.TAG }}=100
+      # 未提出のリマインドのジョブ(CI/CD 設定手順書 2.8)。アプリと同じイメージで dist/reminder.js を実行する。
+      # 利用者に通知を作るため、アプリの切り替え(step=promote)に合わせて更新する。
+      # 初回はサービスがなく step=deploy でそのまま公開されるため、そのときも作る
+      - name: Deploy the reminder job
+        if: inputs.step == 'promote' || steps.service.outputs.exists == 'false'
+        run: |
+          gcloud run jobs deploy nippo-reminder --region "$REGION" --image "$IMAGE" \
+            --command node --args=--enable-source-maps,dist/reminder.js \
+            --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-secrets DATABASE_URL=nippo-database-url:latest \
+            --tasks 1 --max-retries 1 --task-timeout 10m --quiet

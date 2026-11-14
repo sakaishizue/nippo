@@ -67,6 +67,15 @@ jobs:
           flags: --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }} --allow-unauthenticated
           secrets: |
             DATABASE_URL=nippo-staging-database-url:latest
+      # 未提出のリマインドのジョブ(要件定義書 F-54、CI/CD 設定手順書 2.8)。アプリと同じイメージで dist/reminder.js を実行する。
+      # ステージングは定期実行せず、確認するときに手動で実行する
+      - name: Deploy the reminder job
+        run: |
+          gcloud run jobs deploy nippo-reminder-staging --region "$REGION" --image "$IMAGE" \
+            --command node --args=--enable-source-maps,dist/reminder.js \
+            --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-secrets DATABASE_URL=nippo-staging-database-url:latest \
+            --tasks 1 --max-retries 1 --task-timeout 10m --quiet
       # バックアップのジョブ(CI/CD 設定手順書 2.7)。ステージングは定期実行せず、確認するときに手動で実行する
       - name: Deploy the backup job
         run: |
