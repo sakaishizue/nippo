@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-13 / 状態: 初版(プロジェクトの作成、Neon、承認者、認証の確認を追加)
+> 更新日: 2026-11-14 / 状態: 初版(Dockerfile を追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -17,13 +17,14 @@ flowchart LR
 
 | ワークフロー | ファイル | 実行のきっかけ | 内容 |
 | --- | --- | --- | --- |
-| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行) |
+| CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行)、イメージのビルドと起動の確認(「Container image」) |
 | Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする |
 | Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし、`step=promote` で切り替える |
 | Check Google Cloud access | `.github/workflows/gcp-auth-check.yml` | 手動実行 | Workload Identity 連携で認証できるか、デプロイに使う権限があるかを、読み取りだけで確かめる(3.4) |
 
 - 本番へのデプロイは手動実行とし、さらに `production` の Environment の承認者(Required reviewers)が承認してから動くようにする。リポジトリは公開のため、GitHub の無料プランでも承認者を設定できる。誤った実行や、ステージングで確認していないバージョンの公開を防ぐため
-- `Dockerfile` がまだないため、Deploy staging はスキップされる。アプリを作成して `Dockerfile` を追加すると動き出す
+- イメージはリポジトリの直下の `Dockerfile` で作る。画面のビルド結果と API を1つのイメージにまとめ、API が `/api` 以外の URL で画面を配信する(5章)
+- 「Container image」は、ブランチの保護で必須にはしていない(3.3)。イメージを変えたプルリクエストでは、成功を確かめてからマージする
 - Google Cloud への認証は Workload Identity 連携を使い、サービスアカウントのキーは発行しない
 
 ## 2. Google Cloud の初期設定
@@ -98,7 +99,7 @@ gcloud iam service-accounts add-iam-policy-binding github-deployer@PROJECT_ID.ia
 | 自動停止(Scale to zero) | 有効(既定のまま) | 有効(既定のまま) |
 
 - データベース名は既定の `neondb` のままでよい
-- 「Connect」で表示される接続文字列のうち、アプリには接続プール用(ホスト名に `-pooler` が付くもの)を使う。マイグレーションには直接接続の接続文字列を使う(ステージングと本番へのマイグレーションの手順は、`Dockerfile` を作るときに5章に追加する)
+- 「Connect」で表示される接続文字列のうち、アプリには接続プール用(ホスト名に `-pooler` が付くもの)を使う。マイグレーションには直接接続の接続文字列を使う(ステージングと本番へのマイグレーションの手順は、5章の「マイグレーション」で追加する)
 - 接続文字列にはパスワードが含まれるため、ファイルやチャットに貼らない。次の Secret Manager への登録で、画面に直接貼り付ける
 
 本番用とステージング用の接続文字列(接続プール用)を、Secret Manager に登録する。
@@ -212,6 +213,6 @@ unset DATABASE_URL
 
 | 項目 | 内容 |
 | --- | --- |
-| `Dockerfile` | 画面のビルドとAPIをまとめたイメージを作る。追加するとステージングへのデプロイが動き出す。API のファイルとは別に、`@node-rs/argon2`(ネイティブモジュール)を node_modules に入れる |
+| `Dockerfile` | 追加済み。3段階でビルドする(1. 依存パッケージを入れて画面と API をビルド、2. `@node-rs/argon2`(ネイティブモジュール)だけを入れる、3. ビルドした画面(`public/`)と API(`dist/`)と、2 の node_modules だけをまとめる)。環境変数 `WEB_DIR=public` で API が画面を配信し、`PORT`(Cloud Run が渡す。既定は8080)で待ち受ける。`node` ユーザー(root 以外)で動かす。リマインドのジョブも同じイメージで `node dist/reminder.js` を実行する |
 | マイグレーション | デプロイの前に、Prisma のマイグレーションを実行する手順を追加する |
 | 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブにし、Cloud Scheduler から平日の朝9時(`0 9 * * 1-5`、タイムゾーン `Asia/Tokyo`)に起動する。祝日はジョブの中で判定して何もしない |

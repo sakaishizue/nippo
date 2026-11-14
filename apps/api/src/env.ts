@@ -6,6 +6,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   // データベースへの同時接続数の上限。ローカルの prisma dev を使うときだけ 1 にする(省略時は pg の既定)
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).optional(),
+  // 画面(apps/web のビルド結果)を置いたディレクトリ。本番のイメージでだけ設定する(Dockerfile)
+  WEB_DIR: z.string().min(1).optional(),
 });
 export type Env = z.infer<typeof envSchema>;
 
