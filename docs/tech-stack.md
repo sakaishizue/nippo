@@ -1,6 +1,6 @@
 # 営業日報システム 技術選定書
 
-> 更新日: 2026-11-12 / 状態: 初版(バックアップのジョブの構成を追加)
+> 更新日: 2026-11-14 / 状態: 初版(バックアップの時刻を追加)
 > 前提: 開発言語の指定なし、運用先は Google Cloud(データベースのみ Neon)、画面とAPIは分ける構成、運用費用をできるだけ抑える
 
 ## 1. 選定の方針
@@ -18,7 +18,7 @@ flowchart LR
     run --> neon[("Neon<br>PostgreSQL")]
     scheduler["Cloud Scheduler"] -->|平日 9:00| reminder["Cloud Run ジョブ<br>リマインド"]
     reminder --> neon
-    scheduler -->|毎日| job["Cloud Run ジョブ<br>バックアップ"]
+    scheduler -->|毎日 3:00| job["Cloud Run ジョブ<br>バックアップ"]
     job --> neon
     job --> storage["Cloud Storage<br>バックアップ"]
     run --> secret["Secret Manager"]
