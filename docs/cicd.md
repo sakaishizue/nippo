@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-14 / 状態: 初版(バックアップと復元の手順を追加)
+> 更新日: 2026-11-14 / 状態: 初版(リマインドとバックアップの定期実行を追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -18,8 +18,8 @@ flowchart LR
 | ワークフロー | ファイル | 実行のきっかけ | 内容 |
 | --- | --- | --- | --- |
 | CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行)、イメージのビルドと起動の確認(「Container image」)、バックアップのイメージで書き出しと復元の確認(「Backup image」) |
-| Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする。バックアップのジョブも更新する(2.7) |
-| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし(バックアップのジョブも更新する)、`step=promote` で切り替える |
+| Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする。リマインドとバックアップのジョブも更新する(2.7、2.8) |
+| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし(バックアップのジョブも更新する)、`step=promote` で切り替える(リマインドのジョブも更新する。2.8) |
 | Check Google Cloud access | `.github/workflows/gcp-auth-check.yml` | 手動実行 | Workload Identity 連携で認証できるか、デプロイに使う権限があるかを、読み取りだけで確かめる(3.4) |
 
 - 本番へのデプロイは手動実行とし、さらに `production` の Environment の承認者(Required reviewers)が承認してから動くようにする。リポジトリは公開のため、GitHub の無料プランでも承認者を設定できる。誤った実行や、ステージングで確認していないバージョンの公開を防ぐため
@@ -181,7 +181,7 @@ Cloud Run ジョブで毎日、データベースの全データを `pg_dump` �
 | サービスアカウント | `nippo-backup` | `nippo-backup-staging` |
 | 読む接続文字列 | `nippo-database-direct-url` | `nippo-staging-database-direct-url` |
 | 保存先のバケット | `PROJECT_ID-backup` | `PROJECT_ID-staging-backup` |
-| 定期実行 | Cloud Scheduler で毎日(#47) | しない。確認するときに手動で実行する(技術選定書 3.7) |
+| 定期実行 | Cloud Scheduler で毎日3時(日本時間)(2.8) | しない。確認するときに手動で実行する(技術選定書 3.7) |
 
 - ジョブのイメージは `backup/Dockerfile`(PostgreSQL の公式イメージに `backup/backup.sh` を入れたもの)。Deploy staging がイメージを作ってステージングのジョブを更新し、Release production の `step=deploy` が同じイメージで本番のジョブを更新する。ジョブの設定(接続文字列、バケット、タイムアウトなど)はワークフローに書いてある
 - `pg_dump` は、データベースと同じか新しい版の PostgreSQL でないと書き出せない。イメージは PostgreSQL 18。Neon のプロジェクトの「Settings」で Postgres のバージョンが18以下であることを確かめる。Neon を19以上にするときは、先に `backup/Dockerfile` の版を上げる
@@ -242,6 +242,54 @@ gcloud storage ls -l gs://PROJECT_ID-staging-backup/
 gcloud run jobs execute nippo-backup-staging --region=asia-southeast1 --update-env-vars=BUCKET=PROJECT_ID-no-such-bucket --wait
 ```
 
+### 2.8 定期実行(リマインドとバックアップ)
+
+本番だけ、Cloud Scheduler から Cloud Run ジョブを定期的に起動する。ステージングは定期実行せず、確認するときに手動で実行する(技術選定書 3.7)。
+
+| Cloud Scheduler のジョブ | 起動する Cloud Run ジョブ | 時刻(日本時間) | スケジュール |
+| --- | --- | --- | --- |
+| `nippo-reminder` | `nippo-reminder`(未提出のリマインド、要件定義書 F-54) | 平日の9時 | `0 9 * * 1-5` |
+| `nippo-backup` | `nippo-backup`(2.7) | 毎日3時 | `0 3 * * *` |
+
+- リマインドのジョブは、アプリと同じイメージで `node dist/reminder.js` を実行する。サービスアカウントはアプリと同じ `nippo-runtime` で、接続プール用の接続文字列を読む。ステージングは `nippo-reminder-staging`
+- リマインドのジョブは、Deploy staging がステージング、Release production の `step=promote`(初回は `step=deploy`)が本番を更新する。利用者に通知を作るため、アプリの切り替えに合わせる
+- 祝日はジョブの中で判定して何もしない。同じ日に何度実行しても、同じ人へのリマインドは1件だけ
+- Cloud Scheduler の無料枠は、請求先アカウントごとに月3ジョブ。本番の2つで収まる(ステージングに設定しないのはこのため)
+- 起動には専用のサービスアカウント `nippo-scheduler` を使い、この2つのジョブを実行する権限(Cloud Run 起動元)だけを付ける
+- 失敗は 2.7 の通知で知らせる(Cloud Run ジョブの失敗を対象にしているため、リマインドも含む)
+
+以下は、本番の初回のリリース(4章)で `nippo-reminder` と `nippo-backup` のジョブができた後に、一度だけ実行する。
+
+```bash
+gcloud services enable cloudscheduler.googleapis.com
+gcloud iam service-accounts create nippo-scheduler
+
+gcloud run jobs add-iam-policy-binding nippo-reminder --region=asia-southeast1 --member="serviceAccount:nippo-scheduler@PROJECT_ID.iam.gserviceaccount.com" --role="roles/run.invoker"
+gcloud run jobs add-iam-policy-binding nippo-backup --region=asia-southeast1 --member="serviceAccount:nippo-scheduler@PROJECT_ID.iam.gserviceaccount.com" --role="roles/run.invoker"
+
+gcloud scheduler jobs create http nippo-reminder --location=asia-southeast1 --schedule="0 9 * * 1-5" --time-zone="Asia/Tokyo" --uri="https://run.googleapis.com/v2/projects/PROJECT_ID/locations/asia-southeast1/jobs/nippo-reminder:run" --http-method=POST --oauth-service-account-email="nippo-scheduler@PROJECT_ID.iam.gserviceaccount.com"
+gcloud scheduler jobs create http nippo-backup --location=asia-southeast1 --schedule="0 3 * * *" --time-zone="Asia/Tokyo" --uri="https://run.googleapis.com/v2/projects/PROJECT_ID/locations/asia-southeast1/jobs/nippo-backup:run" --http-method=POST --oauth-service-account-email="nippo-scheduler@PROJECT_ID.iam.gserviceaccount.com"
+```
+
+**動作の確認**
+
+設定の直後に、時刻を待たずに1回起動して、権限が正しいかを確かめる。
+
+```bash
+gcloud scheduler jobs run nippo-backup --location=asia-southeast1
+gcloud run jobs executions list --job=nippo-backup --region=asia-southeast1 --limit=3
+```
+
+- 新しい実行ができて、しばらくすると成功(`SUCCEEDED` の欄が1)になればよい。権限が足りないと実行ができず、`gcloud scheduler jobs describe nippo-backup --location=asia-southeast1` の `status` にエラーが出る
+- リマインドも同じように `nippo-reminder` で確かめられる。営業日に実行すると、本番の利用者に前営業日のリマインドが作られる(9時の実行と同じ内容で、同じ日に2件にはならない)
+- 翌日以降、`gcloud run jobs executions list` で、設定した時刻に実行されていることを確かめる
+
+ステージングのリマインドは、次のように手動で実行する。実行日の前営業日の日報が未提出の一般のユーザーに、通知が作られる。
+
+```bash
+gcloud run jobs execute nippo-reminder-staging --region=asia-southeast1 --wait
+```
+
 ## 3. GitHub の設定
 
 ### 3.1 リポジトリの変数(Settings → Secrets and variables → Actions → Variables)
@@ -297,7 +345,7 @@ gcloud run jobs execute nippo-backup-staging --region=asia-southeast1 --update-e
 5. 問題がなければ、同じ `sha` で `step=promote` を実行し、承認して、利用者のアクセスを切り替える
 6. 問題が起きた場合は、Cloud Run のコンソールで前のリビジョンにトラフィックを戻す
 
-- 初回のリリースだけは、本番のサービスがまだないため、手順3でそのまま利用者に公開される
+- 初回のリリースだけは、本番のサービスがまだないため、手順3でそのまま利用者に公開される。リマインドのジョブもこのときに作られる。初回のリリースの後に、2.6(初期管理者)と 2.8(定期実行)を設定する
 
 ## 5. アプリ作成時に追加すること
 
@@ -306,7 +354,7 @@ gcloud run jobs execute nippo-backup-staging --region=asia-southeast1 --update-e
 | `Dockerfile` | 追加済み。3段階でビルドする(1. 依存パッケージを入れて画面と API をビルド、2. `@node-rs/argon2`(ネイティブモジュール)だけを入れる、3. ビルドした画面(`public/`)と API(`dist/`)と、2 の node_modules だけをまとめる)。環境変数 `WEB_DIR=public` で API が画面を配信し、`PORT`(Cloud Run が渡す。既定は8080)で待ち受ける。`node` ユーザー(root 以外)で動かす。リマインドのジョブも同じイメージで `node dist/reminder.js` を実行する |
 | マイグレーション | 追加済み。Deploy staging はイメージを作った後、Release production は `step=deploy` で承認された後に、`nippo-staging-database-direct-url` か `nippo-database-direct-url` を読んで `prisma migrate deploy` を実行してから、新しいバージョンをデプロイする。マイグレーションが失敗したらデプロイしない。古いバージョンでも動くマイグレーションにする(CLAUDE.md) |
 | バックアップ | 追加済み(2.7、6章)。`backup/Dockerfile` のイメージを、Deploy staging がステージングのジョブ、Release production が本番のジョブにデプロイする。CI の「Backup image」で、イメージで書き出してから別のデータベースに復元できることを確かめる |
-| 定期処理 | リマインドとバックアップの Cloud Scheduler、Cloud Run ジョブを設定する。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブにし、Cloud Scheduler から平日の朝9時(`0 9 * * 1-5`、タイムゾーン `Asia/Tokyo`)に起動する。祝日はジョブの中で判定して何もしない |
+| 定期処理 | 追加済み(2.8)。リマインドは API と同じイメージで `node dist/reminder.js` を実行するジョブ(`nippo-reminder-staging`、`nippo-reminder`)にし、Deploy staging と Release production が更新する。本番だけ Cloud Scheduler から、リマインドを平日の朝9時、バックアップを毎日3時(日本時間)に起動する。祝日はジョブの中で判定して何もしない |
 
 ## 6. バックアップからの復元
 
