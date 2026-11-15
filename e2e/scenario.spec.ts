@@ -11,7 +11,7 @@ import {
 
 // 複数の画面とロールをまたぐ業務シナリオ(テスト仕様書 5章)
 // 今日の日報を作るため、シードのユーザー(U1 は今日の日報がない前提の画面テストがある)は使わず、
-// 実行ごとに上長と一般を1組登録して使う。日報、通知、承認待ちが他のテストや前回の実行と混ざらない
+// 実行ごとに上長と一般を1組登録して使い、最後に無効にする。日報、通知、承認待ちが他のテストや前回の実行と混ざらない
 
 /** 実行ごとに、上長と、その部下の一般を登録する */
 const registerTeam = async (page: Page, projectName: string) => {
@@ -36,8 +36,24 @@ const registerTeam = async (page: Page, projectName: string) => {
     role: "member",
     manager_id: manager.id,
   });
+  registered.push(member.id, manager.id);
   return { manager: manager.email, member: member.email, suffix };
 };
+
+/** 登録したユーザー。部下がいる上長は無効にできないため、一般、上長の順に入れる */
+const registered: number[] = [];
+
+// 登録したユーザーは、テストの後に無効にする。ユーザー一覧(有効なユーザーだけを表示)に溜まらないように
+test.afterEach(async ({ request }) => {
+  const admin = await asAdmin(request);
+  for (const id of registered.splice(0)) {
+    const res = await request.patch(`/api/v1/users/${id}`, {
+      ...admin,
+      data: { is_active: false },
+    });
+    expect(res.status()).toBe(200);
+  }
+});
 
 const info = (page: Page) => page.getByRole("region", { name: "日報の情報" });
 const workEntry = (page: Page, n: number) => page.getByRole("listitem", { name: `作業${n}` });

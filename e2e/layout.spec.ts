@@ -24,19 +24,19 @@ for (const [user, home, labels] of menus) {
 }
 
 test("一般と上長には未読の通知の件数を表示し、管理者には通知を表示しない", async ({ page }) => {
-  await loginAs(page, "M1");
+  await loginAs(page, USERS.M1);
   await page.goto("/");
   await expect(page.getByRole("link", { name: /^通知/ }).first()).toBeVisible();
 
   await page.context().clearCookies();
-  await loginAs(page, "A1");
+  await loginAs(page, USERS.A1);
   await page.goto("/admin/users");
   await openMenu(page);
   await expect(page.getByRole("link", { name: /^通知/ })).toHaveCount(0);
 });
 
 test("メニューから画面を移動でき、選んだメニューが選択中になる", async ({ page }) => {
-  await loginAs(page, "U1");
+  await loginAs(page, USERS.U1);
   await page.goto("/");
   await openMenu(page);
   await menuLinks(page).getByText("日報一覧").click();
@@ -49,7 +49,7 @@ test("メニューから画面を移動でき、選んだメニューが選択�
 });
 
 test("ユーザー名からプロフィールに移動できる", async ({ page }) => {
-  await loginAs(page, "U1");
+  await loginAs(page, USERS.U1);
   await page.goto("/");
   await openMenu(page);
   await page
@@ -62,7 +62,7 @@ test("ユーザー名からプロフィールに移動できる", async ({ page 
 test("ログアウトするとログイン画面に移動し、画面を開くとログイン画面に戻される", async ({
   page,
 }) => {
-  await loginAs(page, "U1");
+  await loginAs(page, USERS.U1);
   await page.goto("/reports");
   await openMenu(page);
   await page.getByRole("button", { name: "ログアウト" }).filter({ visible: true }).click();
@@ -76,7 +76,7 @@ test.describe("スマートフォンの画面幅(375px)", () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
   test("メニューは折りたたまれ、ボタンで開閉できる", async ({ page }) => {
-    await loginAs(page, "M1");
+    await loginAs(page, USERS.M1);
     await page.goto("/");
     await expect(menuLinks(page)).toHaveCount(0);
 
@@ -111,7 +111,7 @@ test.describe("スマートフォンの画面幅(375px)", () => {
   }
 
   test("ヘッダーのボタンとリンクは高さ44px以上", async ({ page }) => {
-    await loginAs(page, "U1");
+    await loginAs(page, USERS.U1);
     await page.goto("/");
     await page.getByRole("button", { name: "メニューを開く" }).click();
     const targets = page
@@ -129,7 +129,7 @@ test.describe("PCの画面幅(1280px)", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test("メニューを横に並べ、ハンバーガーメニューは出さない", async ({ page }) => {
-    await loginAs(page, "M1");
+    await loginAs(page, USERS.M1);
     await page.goto("/");
     await expect(menuLinks(page)).toHaveCount(6);
     await expect(page.getByRole("button", { name: "メニューを開く" })).toBeHidden();

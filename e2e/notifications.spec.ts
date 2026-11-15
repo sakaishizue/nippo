@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { loginAs, uniquePastDate } from "./helpers";
+import { createSubmittedReport, loginAs, monthDay } from "./helpers";
 
 // SCR-14 通知一覧とヘッダーの未読数。データはテスト仕様書 3章(開発用のシード)
 // 他の画面テストと通知が混ざらないよう、U3(田中 三郎)と、その上長の M2 を使う
@@ -7,22 +7,12 @@ import { loginAs, uniquePastDate } from "./helpers";
 /** U3 の日報を作って提出する(M2 に提出の通知が届く) */
 const submitReportOfU3 = async (page: Page, projectName: string) => {
   const csrf = await loginAs(page, "u3@example.com");
-  const headers = { "X-CSRF-Token": csrf };
-  const date = uniquePastDate(projectName, 1940);
-  const created = await page.request.post("/api/v1/reports", {
-    headers,
-    data: {
-      report_date: date,
-      reflection: "定例の訪問",
-      next_plan: "社内会議",
-      work_entries: [{ category: "meeting", minutes: 30, deal_id: null, note: null, visit: null }],
-    },
+  const { id, date } = await createSubmittedReport(page, csrf, projectName, 1940, {
+    reflection: "定例の訪問",
+    next_plan: "社内会議",
+    work_entries: [{ category: "meeting", minutes: 30, deal_id: null, note: null, visit: null }],
   });
-  expect(created.status()).toBe(201);
-  const { id } = (await created.json()) as { id: number };
-  expect((await page.request.post(`/api/v1/reports/${id}/submit`, { headers })).status()).toBe(200);
-  const [, m, d] = date.split("-").map(Number);
-  return { id, message: `田中さんが${m}月${d}日の日報を提出しました` };
+  return { id, message: `田中さんが${monthDay(date)}の日報を提出しました` };
 };
 
 /** ヘッダーの通知のリンク。名前は「通知(未読N件)」、未読がなければ「通知」 */

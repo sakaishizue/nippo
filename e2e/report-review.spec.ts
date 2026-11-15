@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { heading, loginAs, uniquePastDate } from "./helpers";
+import { createSubmittedReport, heading, loginAs } from "./helpers";
 
 // SCR-05 日報詳細の承認、差し戻し、コメント。データはテスト仕様書 3章(開発用のシード)
 // シードの日報を変えないよう、テストごとに U2(上長は M1)の日報を作って提出してから操作する
@@ -7,24 +7,13 @@ import { heading, loginAs, uniquePastDate } from "./helpers";
 /** U2 の日報を作って提出し、日付とIDを返す */
 const submittedReportOfU2 = async (page: Page, projectName: string) => {
   const csrf = await loginAs(page, "u2@example.com");
-  const headers = { "X-CSRF-Token": csrf };
-  const date = uniquePastDate(projectName, 1970);
-  const created = await page.request.post("/api/v1/reports", {
-    headers,
-    data: {
-      report_date: date,
-      reflection: "見積の条件を確認できた",
-      next_plan: "見積書を作る",
-      work_entries: [
-        { category: "document", minutes: 60, deal_id: null, note: "見積の準備", visit: null },
-      ],
-    },
+  return createSubmittedReport(page, csrf, projectName, 1970, {
+    reflection: "見積の条件を確認できた",
+    next_plan: "見積書を作る",
+    work_entries: [
+      { category: "document", minutes: 60, deal_id: null, note: "見積の準備", visit: null },
+    ],
   });
-  expect(created.status()).toBe(201);
-  const { id } = (await created.json()) as { id: number };
-  const submitted = await page.request.post(`/api/v1/reports/${id}/submit`, { headers });
-  expect(submitted.status()).toBe(200);
-  return { id, date };
 };
 
 const info = (page: Page) => page.getByRole("region", { name: "日報の情報" });

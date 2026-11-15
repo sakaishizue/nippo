@@ -28,7 +28,7 @@ test.describe("ログイン状態と権限", () => {
   });
 
   test("ログアウトした後に画面を開くと、ログイン画面に移動する", async ({ page }) => {
-    await loginAs(page, "U1");
+    await loginAs(page, USERS.U1);
     await page.goto("/reports");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("日報一覧");
 
@@ -40,7 +40,7 @@ test.describe("ログイン状態と権限", () => {
 
   // テスト仕様書 E2E-13
   test("一般がユーザー一覧のURLを直接開くと、エラー画面(403)を表示する", async ({ page }) => {
-    await loginAs(page, "U1");
+    await loginAs(page, USERS.U1);
     await page.goto("/admin/users");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "この画面を表示する権限がありません",
