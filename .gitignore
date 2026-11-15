@@ -11,3 +11,6 @@ blob-report/
 
 # Prisma が生成するクライアント(pnpm install 時に生成する)
 apps/api/generated/
+
+# 性能テストの測定結果(docs/performance.md に転記する)
+perf/results/
