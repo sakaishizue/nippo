@@ -1,20 +1,7 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { loginAs, USERS } from "./helpers";
 
 // テスト仕様書 3章のユーザー(開発用のシード)。パスワードは全員同じ
-const USERS = {
-  A1: "a1@example.com",
-  M1: "m1@example.com",
-  U1: "u1@example.com",
-} as const;
-type User = keyof typeof USERS;
-
-/** API でログインする。page.request は画面と Cookie を共有するため、以降の画面はログイン済みで開く */
-const loginAs = async (page: Page, user: User) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email: USERS[user], password: "password123" },
-  });
-  expect(res.status()).toBe(200);
-};
 
 test("存在しないURLでは「ページが見つかりません」を表示する", async ({ page }) => {
   await page.goto("/no-such-page");
@@ -41,7 +28,7 @@ test.describe("ログイン状態と権限", () => {
   });
 
   test("ログアウトした後に画面を開くと、ログイン画面に移動する", async ({ page }) => {
-    await loginAs(page, "U1");
+    await loginAs(page, USERS.U1);
     await page.goto("/reports");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("日報一覧");
 
@@ -53,7 +40,7 @@ test.describe("ログイン状態と権限", () => {
 
   // テスト仕様書 E2E-13
   test("一般がユーザー一覧のURLを直接開くと、エラー画面(403)を表示する", async ({ page }) => {
-    await loginAs(page, "U1");
+    await loginAs(page, USERS.U1);
     await page.goto("/admin/users");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "この画面を表示する権限がありません",
@@ -67,7 +54,7 @@ test.describe("ログイン状態と権限", () => {
   ] as const;
   for (const [user, path] of forbidden) {
     test(`${user} が ${path} を開くと、エラー画面(403)を表示する`, async ({ page }) => {
-      await loginAs(page, user);
+      await loginAs(page, USERS[user]);
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         "この画面を表示する権限がありません",

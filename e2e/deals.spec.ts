@@ -1,14 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
+import { loginAs } from "./helpers";
 
 // SCR-11 商談一覧、SCR-12 商談詳細、SCR-13 商談登録・編集。データはテスト仕様書 3章(開発用のシード)
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
 
 const main = (page: Page) => page.getByRole("main");
 const link = (page: Page, name: string | RegExp) =>

@@ -1,17 +1,9 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { heading, loginAs, uniquePastDate } from "./helpers";
 
 // SCR-04 日報入力。データはテスト仕様書 3章(開発用のシード)
 // シードの日報は U1 の 11月2日(承認済み)、3日(差し戻し)、4日(提出済み)、5日(下書き)。U2 には日報がない
-const PASSWORD = "password123";
 
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-};
-
-const heading = (page: Page) => page.getByRole("heading", { level: 1 });
 const workEntry = (page: Page, n: number) => page.getByRole("listitem", { name: `作業${n}` });
 const total = (page: Page) => page.getByText(/^合計時間/);
 
@@ -27,20 +19,6 @@ const choose = async (page: Page, input: Locator, name: string) => {
   await input.fill(name.slice(0, 2));
   await page.getByRole("option", { name: new RegExp(`^${name}`) }).click();
   await expect(input).toHaveValue(name);
-};
-
-/**
- * 保存するテストで使う過去の日付。日報は1人1日1件で削除できないため、
- * 開発用のデータベースで何度実行しても重ならないように、実行した時刻とブラウザの種類から決める
- */
-const PROJECTS = ["desktop-chrome", "desktop-edge", "iphone-safari", "android-chrome"];
-const uniquePastDate = (projectName: string) => {
-  // 2000年から約25年の範囲。1秒ごとに4日ずつ進め、ブラウザの種類で1日ずつずらす
-  const seconds = Math.floor(Date.now() / 1000) % 2300;
-  const date = new Date(
-    Date.UTC(2000, 0, 1 + seconds * 4 + Math.max(0, PROJECTS.indexOf(projectName))),
-  );
-  return date.toISOString().slice(0, 10);
 };
 
 // テスト仕様書 E2E-04
@@ -180,7 +158,7 @@ test("下書き保存した日報を編集して提出する。提出は確認�
 }, testInfo) => {
   test.slow();
   await openNew(page);
-  await page.getByLabel("日付").fill(uniquePastDate(testInfo.project.name));
+  await page.getByLabel("日付").fill(uniquePastDate(testInfo.project.name, 1910));
   const entry = workEntry(page, 1);
   await entry.getByLabel("作業区分").selectOption("資料作成");
   await entry.getByLabel("時間(分)").fill("90");

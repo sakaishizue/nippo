@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
+import { PASSWORD } from "./helpers";
 
 // SCR-01 ログイン。ユーザーはテスト仕様書 3章(開発用のシード)
-const PASSWORD = "password123";
 
 const fillAndSubmit = async (page: Page, email: string, password: string) => {
   await page.getByLabel("メールアドレス").fill(email);

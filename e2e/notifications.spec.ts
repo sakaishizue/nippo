@@ -1,49 +1,18 @@
 import { expect, type Page, test } from "@playwright/test";
+import { createSubmittedReport, loginAs, monthDay } from "./helpers";
 
 // SCR-14 通知一覧とヘッダーの未読数。データはテスト仕様書 3章(開発用のシード)
 // 他の画面テストと通知が混ざらないよう、U3(田中 三郎)と、その上長の M2 を使う
-const PASSWORD = "password123";
-
-const loginAs = async (page: Page, email: string) => {
-  const res = await page.request.post("/api/v1/auth/login", {
-    data: { email, password: PASSWORD },
-  });
-  expect(res.status()).toBe(200);
-  return ((await res.json()) as { csrf_token: string }).csrf_token;
-};
-
-let sequence = 0;
-/**
- * 日報は1人1日1件で削除できないため、重ならない過去の日付を使う。
- * 他の画面テストと重ならないよう、1940〜1969年を使う
- */
-const uniquePastDate = (projectName: string) => {
-  const projects = ["desktop-chrome", "desktop-edge", "iphone-safari", "android-chrome"];
-  const seconds = Math.floor(Date.now() / 1000) % 1300;
-  sequence += 1;
-  const offset = seconds * 8 + Math.max(0, projects.indexOf(projectName)) * 2 + (sequence % 2);
-  return new Date(Date.UTC(1940, 0, 1 + offset)).toISOString().slice(0, 10);
-};
 
 /** U3 の日報を作って提出する(M2 に提出の通知が届く) */
 const submitReportOfU3 = async (page: Page, projectName: string) => {
   const csrf = await loginAs(page, "u3@example.com");
-  const headers = { "X-CSRF-Token": csrf };
-  const date = uniquePastDate(projectName);
-  const created = await page.request.post("/api/v1/reports", {
-    headers,
-    data: {
-      report_date: date,
-      reflection: "定例の訪問",
-      next_plan: "社内会議",
-      work_entries: [{ category: "meeting", minutes: 30, deal_id: null, note: null, visit: null }],
-    },
+  const { id, date } = await createSubmittedReport(page, csrf, projectName, 1940, {
+    reflection: "定例の訪問",
+    next_plan: "社内会議",
+    work_entries: [{ category: "meeting", minutes: 30, deal_id: null, note: null, visit: null }],
   });
-  expect(created.status()).toBe(201);
-  const { id } = (await created.json()) as { id: number };
-  expect((await page.request.post(`/api/v1/reports/${id}/submit`, { headers })).status()).toBe(200);
-  const [, m, d] = date.split("-").map(Number);
-  return { id, message: `田中さんが${m}月${d}日の日報を提出しました` };
+  return { id, message: `田中さんが${monthDay(date)}の日報を提出しました` };
 };
 
 /** ヘッダーの通知のリンク。名前は「通知(未読N件)」、未読がなければ「通知」 */

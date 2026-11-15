@@ -90,6 +90,7 @@ APIテスト(データベースを使うテスト):
 - 日報のステータスは `ReportStatusLabel`(画面定義書 3.5 の色と文字)
 - import は `@/`(`src/` を指す)を使う
 - 画面テスト(`pnpm test:e2e`)は API と画面の開発サーバーを自動で起動する。起動済みならそれを使う。API は `apps/api/.env` の `DATABASE_URL` のデータベースにつなぐため、マイグレーションとシード(`db:migrate:deploy`、`db:seed`)を済ませておく
+- 画面テストの共通処理(ログイン、CSRFトークン、管理者での API 呼び出し、重ならない過去の日付など)は `e2e/helpers.ts` にある。日報は1人1日1件で削除できないため、過去の日付はファイルごとに `uniquePastDate(projectName, fromYear)` の年を分ける。今日の日報が要るシナリオは、実行ごとにユーザーを登録して使う(`e2e/scenario.spec.ts`)
 - CI の「E2E tests」は、サービスコンテナの PostgreSQL にマイグレーションとシードを適用してから実行する。失敗すると、トレースとスクリーンショットを含む HTML のレポートを保存する
 
 Gitフック(husky、設定は `.husky/`):
