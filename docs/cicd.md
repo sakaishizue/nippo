@@ -1,6 +1,6 @@
 # 営業日報システム CI/CD 設定手順書
 
-> 更新日: 2026-11-16 / 状態: 初版(運用中の確認を追加)
+> 更新日: 2026-11-16 / 状態: 初版(イメージの自動削除と予算を追加)
 > 構成は [tech-stack.md](tech-stack.md) を参照。
 
 ## 1. 全体の流れ
@@ -19,7 +19,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | CI | `.github/workflows/ci.yml` | プルリクエスト、main へのプッシュ | `pnpm check`、`pnpm typecheck`、`pnpm test:coverage`(データベースを使うAPIテストを含む)、マイグレーションの確認、`pnpm test:e2e`(API、画面、データベースを起動して実行)、イメージのビルドと起動の確認(「Container image」)、バックアップのイメージで書き出しと復元の確認(「Backup image」) |
 | Deploy staging | `.github/workflows/deploy.yml` | main の CI が成功したとき | Docker イメージを作って Artifact Registry に保存し、ステージングにデプロイする。リマインドとバックアップのジョブも更新する(2.7、2.8) |
-| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でトラフィックなしで本番にデプロイし(バックアップのジョブも更新する)、`step=promote` で切り替える(リマインドのジョブも更新する。2.8) |
+| Release production | `.github/workflows/release.yml` | 手動実行(Actions 画面の「Run workflow」)と承認 | `step=deploy` でイメージに `release-` のタグを付け(2.2)、トラフィックなしで本番にデプロイし(バックアップのジョブも更新する)、`step=promote` で切り替える(リマインドのジョブも更新する。2.8) |
 | Check Google Cloud access | `.github/workflows/gcp-auth-check.yml` | 手動実行 | Workload Identity 連携で認証できるか、デプロイに使う権限があるかを、読み取りだけで確かめる(3.4) |
 
 - 本番へのデプロイは手動実行とし、さらに `production` の Environment の承認者(Required reviewers)が承認してから動くようにする。リポジトリは公開のため、GitHub の無料プランでも承認者を設定できる。誤った実行や、ステージングで確認していないバージョンの公開を防ぐため
@@ -58,6 +58,30 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com iam.go
 gcloud artifacts repositories create nippo --repository-format=docker --location=asia-southeast1
 ```
 
+**古いイメージの自動削除**
+
+イメージはステージングへのデプロイのたびに増える(アプリとバックアップで1回に2つ)。Artifact Registry の無料枠(0.5GB)を超えないように、クリーンアップポリシー(`deploy/artifact-cleanup-policy.json`)で古いイメージを自動で消す。
+
+| ポリシー | 内容 |
+| --- | --- |
+| `delete-old` | 作ってから1日を過ぎたイメージを消す。ただし、次の2つに当たるものは残す |
+| `keep-recent` | アプリとバックアップで、それぞれ新しいもの10個 |
+| `keep-released` | 本番に出したイメージ(`release-` で始まるタグ)。前のリビジョンに戻せるように、すべて残す |
+
+- `release-` のタグは、Release production の `step=deploy` が付ける(タグは `release-` の後にコミットのSHA)
+- 削除は、Artifact Registry が定期的に行う。設定してから反映まで1日ほどかかる
+
+ポリシーを設定する前に、今の本番のイメージに `release-` のタグを付けておく(ワークフローがタグを付けるのは、次のリリースから)。`SHA` は本番で動いているコミットのSHA(40桁)。リポジトリのフォルダで実行する。
+
+```bash
+gcloud artifacts docker tags add asia-southeast1-docker.pkg.dev/PROJECT_ID/nippo/app:SHA asia-southeast1-docker.pkg.dev/PROJECT_ID/nippo/app:release-SHA
+gcloud artifacts docker tags add asia-southeast1-docker.pkg.dev/PROJECT_ID/nippo/backup:SHA asia-southeast1-docker.pkg.dev/PROJECT_ID/nippo/backup:release-SHA
+gcloud artifacts repositories set-cleanup-policies nippo --location=asia-southeast1 --policy=deploy/artifact-cleanup-policy.json --no-dry-run
+```
+
+- 本番で動いているコミットのSHAは、`gcloud run services describe nippo --region=asia-southeast1 --format="value(spec.template.spec.containers[0].image)"` で表示されるイメージの、`:` の後ろ
+- 設定できたかは `gcloud artifacts repositories describe nippo --location=asia-southeast1` の「Repository Size」と、翌日以降の `gcloud artifacts docker images list asia-southeast1-docker.pkg.dev/PROJECT_ID/nippo --include-tags` で確かめる
+
 ### 2.3 サービスアカウント
 
 | サービスアカウント | 用途 | 付与するロール |
@@ -73,6 +97,16 @@ gcloud projects add-iam-policy-binding PROJECT_ID --member="serviceAccount:githu
 gcloud projects add-iam-policy-binding PROJECT_ID --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/artifactregistry.writer"
 gcloud iam service-accounts add-iam-policy-binding nippo-runtime@PROJECT_ID.iam.gserviceaccount.com --member="serviceAccount:github-deployer@PROJECT_ID.iam.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
 ```
+
+**既定のサービスアカウントの権限を外す**
+
+Compute Engine の API を有効にすると、既定のサービスアカウント(`PROJECT_NUMBER-compute@developer.gserviceaccount.com`)に、プロジェクトの編集者のロールが自動で付く。このシステムのサービスとジョブはどれも専用のサービスアカウントで動き、このアカウントを使わないため、ロールを外す。
+
+```bash
+gcloud projects remove-iam-policy-binding PROJECT_ID --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" --role="roles/editor"
+```
+
+- 外した後に Cloud Run のサービスやジョブが動かなくなった場合は、同じ内容で `add-iam-policy-binding` を実行して元に戻す
 
 ### 2.4 Workload Identity 連携
 
@@ -290,6 +324,24 @@ gcloud run jobs executions list --job=nippo-backup --region=asia-southeast1 --li
 gcloud run jobs execute nippo-reminder-staging --region=asia-southeast1 --wait
 ```
 
+### 2.9 予算とアラート
+
+無料の範囲で運用するため、請求先アカウントに予算を設定し、費用が出始めたらメールで知らせる。予算は知らせるだけで、超えてもサービスは止まらない。
+
+| 項目 | 設定 |
+| --- | --- |
+| 名前 | `nippo` |
+| 対象 | プロジェクト `PROJECT_ID` のすべてのサービス |
+| 金額 | 月1,000円(指定した金額) |
+| 通知する割合 | 実際の費用が 50%、90%、100% に達したとき |
+| 通知先 | 請求先アカウントの管理者と、プロジェクトのオーナーにメール |
+
+1. Google Cloud のコンソールで「お支払い」→「予算とアラート」を開き、「予算を作成」を押す
+2. 上の表のとおりに設定して保存する
+   - 「クレジット」のチェックはすべて外す。無料トライアルのクレジットなどで支払われる分も含めて、費用が出始めたことに気づけるようにするため
+
+- 予算のメールが届いたら、「お支払い」→「レポート」でどのサービスに費用がかかっているかを確かめる
+
 ## 3. GitHub の設定
 
 ### 3.1 リポジトリの変数(Settings → Secrets and variables → Actions → Variables)
@@ -405,6 +457,8 @@ Remove-Item Env:DATABASE_URL
 | 確認すること | 頻度 | 方法 |
 | --- | --- | --- |
 | データベースの容量 | 毎月の初め | 下記 |
+| Google Cloud の費用 | 予算のメールが届いたとき | 2.9 |
+| イメージの保管場所の容量 | 毎月の初め(データベースの容量と合わせて) | `gcloud artifacts repositories describe nippo --location=asia-southeast1` の「Repository Size」が無料枠(0.5GB)より十分小さいこと(2.2) |
 | バックアップとリマインドの実行 | 失敗したときだけ | 失敗はメールで届く(2.7)。届いたら、Cloud Run のコンソールでジョブの「ログ」を見る |
 
 **データベースの容量(技術選定書 3.4)**

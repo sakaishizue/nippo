@@ -84,6 +84,14 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+      # 本番に出したイメージに release- のタグを付ける。Artifact Registry のクリーンアップポリシー
+      # (deploy/artifact-cleanup-policy.json)は、このタグのイメージを消さない。
+      # ステージングへのデプロイが続いても、本番のイメージと前のリビジョンに戻すためのイメージが残る(CI/CD 設定手順書 2.2)
+      - name: Mark the images as released
+        if: inputs.step == 'deploy'
+        run: |
+          gcloud artifacts docker tags add "$IMAGE" "${IMAGE%:*}:release-${SHA}" --quiet
+          gcloud artifacts docker tags add "$BACKUP_IMAGE" "${BACKUP_IMAGE%:*}:release-${SHA}" --quiet
       - id: deploy
         if: inputs.step == 'deploy'
         uses: google-github-actions/deploy-cloudrun@v3
