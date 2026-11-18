@@ -114,12 +114,13 @@ jobs:
             --set-secrets DATABASE_URL=nippo-database-direct-url:latest \
             --set-env-vars BUCKET=${{ vars.GCP_PROJECT_ID }}-backup \
             --tasks 1 --max-retries 1 --task-timeout 30m --memory 1Gi --quiet
-      - if: inputs.step == 'promote'
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          service: nippo
-          region: ${{ env.REGION }}
-          tag_traffic: ${{ env.TAG }}=100
+      # 利用者のアクセスを確認用URLのリビジョンに切り替える。
+      # deploy-cloudrun のアクションは tag_traffic を指定しても先に gcloud run deploy を実行し、
+      # イメージを渡さないと失敗するため、切り替えだけを行う gcloud のコマンドを使う(#116)
+      - name: Switch traffic to the release
+        if: inputs.step == 'promote'
+        run: |
+          gcloud run services update-traffic nippo --region "$REGION" --to-tags "${TAG}=100" --quiet
       # 未提出のリマインドのジョブ(CI/CD 設定手順書 2.8)。アプリと同じイメージで dist/reminder.js を実行する。
       # 利用者に通知を作るため、アプリの切り替え(step=promote)に合わせて更新する。
       # 初回はサービスがなく step=deploy でそのまま公開されるため、そのときも作る
