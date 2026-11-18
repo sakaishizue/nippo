@@ -104,3 +104,46 @@ export const createNotifications = async (
   });
   return count;
 };
+
+/** 用件が片付いた通知を既読にするきっかけ */
+export type ResolveEvent =
+  /** 日報を承認、差し戻しした。上長宛ての提出の通知が片付く */
+  | { type: "reviewed"; reportId: number }
+  /** 日報を提出(再提出)した。本人宛ての差し戻しの通知と、対象日のリマインドが片付く */
+  | { type: "submitted"; reportId: number; userId: number; reportDate: string };
+
+/** 片付いた通知の条件(未読のものだけ) */
+export const resolvedNotificationsWhere = (event: ResolveEvent): Prisma.NotificationWhereInput => {
+  switch (event.type) {
+    case "reviewed":
+      return { readAt: null, reportId: event.reportId, type: "submitted" };
+    case "submitted":
+      return {
+        readAt: null,
+        OR: [
+          { reportId: event.reportId, type: "returned" },
+          // 日報を作る前に届いたリマインドは日報のIDを持たないため、対象日で照合する
+          {
+            userId: event.userId,
+            type: "reminder",
+            targetDate: new Date(`${event.reportDate}T00:00:00Z`),
+          },
+        ],
+      };
+  }
+};
+
+/**
+ * 用件が片付いた未読の通知を既読にする(要件定義書 4.6)。一覧には残り、未読の件数からは外れる。
+ * 日報の状態の変更と同じトランザクションで呼ぶ。既読にした件数を返す
+ */
+export const resolveNotifications = async (
+  db: Db | Prisma.TransactionClient,
+  event: ResolveEvent,
+): Promise<number> => {
+  const { count } = await db.notification.updateMany({
+    where: resolvedNotificationsWhere(event),
+    data: { readAt: now() },
+  });
+  return count;
+};
