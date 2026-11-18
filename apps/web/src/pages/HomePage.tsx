@@ -8,27 +8,84 @@ import {
   type ReportStatus,
 } from "@nippo/shared";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRightIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  ClipboardCheckIcon,
+  ClockIcon,
+  HistoryIcon,
+  type LucideIcon,
+  NotebookPenIcon,
+  SendIcon,
+  Undo2Icon,
+  UsersIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, Navigate } from "react-router";
 import type { z } from "zod";
 import { useMe } from "@/auth/me";
 import { ReportStatusLabel } from "@/components/ReportStatusLabel";
+import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Section({
+  id,
+  title,
+  icon,
+  children,
+  className,
+}: {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section
       aria-labelledby={id}
-      className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+      className={cn(
+        "flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-6",
+        className,
+      )}
     >
-      <h2 id={id} className="text-base font-bold md:text-lg">
+      <SectionHeading id={id} icon={icon}>
         {title}
-      </h2>
+      </SectionHeading>
       {children}
     </section>
+  );
+}
+
+/** 件数などを大きな数字で見せるタイル */
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  unit,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: ReactNode;
+  unit?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm md:p-6">
+      <dl className="flex min-w-0 flex-1 flex-col gap-1">
+        <dt className="text-xs font-bold text-muted-foreground sm:text-sm">{label}</dt>
+        <dd className="text-2xl leading-tight font-bold tabular-nums md:text-3xl">
+          {value}
+          {unit && <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>}
+        </dd>
+      </dl>
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
+      >
+        <Icon className="size-5" />
+      </span>
+    </div>
   );
 }
 
@@ -46,68 +103,85 @@ function RowLink({ to, children }: { to: string; children: ReactNode }) {
 function MemberHome({ data }: { data: MemberDashboard }) {
   const today = data.today_report;
   const editable = today?.status === "draft" || today?.status === "returned";
+  const recentMinutes = data.recent_reports.reduce((sum, report) => sum + report.total_minutes, 0);
   return (
     <>
-      <Section id="home-today" title="今日の日報">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {today ? (
-            <ReportStatusLabel status={today.status} />
-          ) : (
-            <span className="font-bold text-muted-foreground">未作成</span>
-          )}
-          {!today ? (
-            <Link to="/reports/new" className={cn(buttonVariants(), "font-bold")}>
-              作成する
-            </Link>
-          ) : editable ? (
-            <Link to={`/reports/${today.id}/edit`} className={cn(buttonVariants(), "font-bold")}>
-              続きを書く
-            </Link>
-          ) : (
-            <Link to={`/reports/${today.id}`} className={buttonVariants({ variant: "outline" })}>
-              日報を見る
-            </Link>
-          )}
-        </div>
-      </Section>
-
-      {data.returned_reports.length > 0 && (
-        <Section id="home-returned" title="差し戻し中の日報">
-          <ul aria-labelledby="home-returned" className="flex flex-col divide-y">
-            {data.returned_reports.map((report) => (
-              <li key={report.id}>
-                {/* 差し戻しは直して再提出するため、日報入力を開く */}
-                <RowLink to={`/reports/${report.id}/edit`}>
-                  <span className="font-bold">{formatDate(report.report_date)}</span>
-                  <span className="w-full text-sm break-words text-muted-foreground">
-                    {report.reason ?? "理由なし"}
-                  </span>
-                </RowLink>
-              </li>
-            ))}
-          </ul>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
+        <Section
+          id="home-today"
+          title="今日の日報"
+          icon={NotebookPenIcon}
+          className="col-span-2 sm:col-span-1"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {today ? (
+              <ReportStatusLabel status={today.status} />
+            ) : (
+              <span className="font-bold text-muted-foreground">未作成</span>
+            )}
+            {!today ? (
+              <Link to="/reports/new" className={cn(buttonVariants(), "font-bold")}>
+                作成する
+              </Link>
+            ) : editable ? (
+              <Link to={`/reports/${today.id}/edit`} className={cn(buttonVariants(), "font-bold")}>
+                続きを書く
+              </Link>
+            ) : (
+              <Link to={`/reports/${today.id}`} className={buttonVariants({ variant: "outline" })}>
+                日報を見る
+              </Link>
+            )}
+          </div>
         </Section>
-      )}
+        <StatTile
+          icon={Undo2Icon}
+          label="差し戻し中"
+          value={data.returned_reports.length}
+          unit="件"
+        />
+        <StatTile icon={ClockIcon} label="直近7日の作業時間" value={formatMinutes(recentMinutes)} />
+      </div>
 
-      <Section id="home-recent" title="最近の日報">
-        {data.recent_reports.length === 0 ? (
-          <p className="text-muted-foreground">直近7日の日報はありません</p>
-        ) : (
-          <ul aria-labelledby="home-recent" className="flex flex-col divide-y">
-            {data.recent_reports.map((report) => (
-              <li key={report.id}>
-                <RowLink to={`/reports/${report.id}`}>
-                  <span className="font-bold">{formatDate(report.report_date)}</span>
-                  <ReportStatusLabel status={report.status} />
-                  <span className="text-sm text-muted-foreground">
-                    {formatMinutes(report.total_minutes)}
-                  </span>
-                </RowLink>
-              </li>
-            ))}
-          </ul>
+      <div className="grid items-start gap-5 md:gap-6 lg:grid-cols-2">
+        {data.returned_reports.length > 0 && (
+          <Section id="home-returned" title="差し戻し中の日報" icon={Undo2Icon}>
+            <ul aria-labelledby="home-returned" className="flex flex-col divide-y">
+              {data.returned_reports.map((report) => (
+                <li key={report.id}>
+                  {/* 差し戻しは直して再提出するため、日報入力を開く */}
+                  <RowLink to={`/reports/${report.id}/edit`}>
+                    <span className="font-bold">{formatDate(report.report_date)}</span>
+                    <span className="w-full text-sm break-words text-muted-foreground">
+                      {report.reason ?? "理由なし"}
+                    </span>
+                  </RowLink>
+                </li>
+              ))}
+            </ul>
+          </Section>
         )}
-      </Section>
+
+        <Section id="home-recent" title="最近の日報" icon={HistoryIcon}>
+          {data.recent_reports.length === 0 ? (
+            <p className="text-muted-foreground">直近7日の日報はありません</p>
+          ) : (
+            <ul aria-labelledby="home-recent" className="flex flex-col divide-y">
+              {data.recent_reports.map((report) => (
+                <li key={report.id}>
+                  <RowLink to={`/reports/${report.id}`}>
+                    <span className="font-bold">{formatDate(report.report_date)}</span>
+                    <ReportStatusLabel status={report.status} />
+                    <span className="text-sm text-muted-foreground">
+                      {formatMinutes(report.total_minutes)}
+                    </span>
+                  </RowLink>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </div>
     </>
   );
 }
@@ -134,34 +208,53 @@ function SubordinateReport({
 
 /** 上長のホーム: 承認待ちの件数、部下の提出状況(画面定義書 SCR-02) */
 function ManagerHome({ data }: { data: ManagerDashboard }) {
+  // 今日の日報を提出した部下(下書きは null のため数えない)
+  const submittedToday = data.subordinates.filter(({ today }) => today !== null).length;
   return (
     <>
-      <Section id="home-pending" title="承認待ち">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p>
-            <span className="text-2xl font-bold">{data.pending_count}</span> 件
-          </p>
-          <Link to="/approvals" className={cn(buttonVariants(), "font-bold")}>
-            承認待ち一覧へ
-          </Link>
-        </div>
-      </Section>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
+        <Section
+          id="home-pending"
+          title="承認待ち"
+          icon={ClipboardCheckIcon}
+          className="col-span-2 sm:col-span-1"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <p className="text-muted-foreground">
+              <span className="text-3xl leading-tight font-bold text-foreground tabular-nums">
+                {data.pending_count}
+              </span>{" "}
+              件
+            </p>
+            <Link to="/approvals" className={cn(buttonVariants(), "font-bold")}>
+              承認待ち一覧へ
+            </Link>
+          </div>
+        </Section>
+        <StatTile icon={UsersIcon} label="部下" value={data.subordinates.length} unit="人" />
+        <StatTile
+          icon={SendIcon}
+          label="今日の提出"
+          value={submittedToday}
+          unit={`/ ${data.subordinates.length}人`}
+        />
+      </div>
 
-      <Section id="home-subordinates" title="部下の提出状況">
+      <Section id="home-subordinates" title="部下の提出状況" icon={UsersIcon}>
         {data.subordinates.length === 0 ? (
           <p className="text-muted-foreground">部下がいません</p>
         ) : (
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">部下の提出状況</caption>
             <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th scope="col" className="py-2 pr-3 font-bold">
+              <tr className="border-b bg-muted text-left text-muted-foreground">
+                <th scope="col" className="px-3 py-2.5 font-bold">
                   担当者
                 </th>
-                <th scope="col" className="py-2 pr-3 font-bold">
+                <th scope="col" className="px-3 py-2.5 font-bold">
                   前営業日
                 </th>
-                <th scope="col" className="py-2 font-bold">
+                <th scope="col" className="px-3 py-2.5 font-bold">
                   今日
                 </th>
               </tr>
@@ -169,16 +262,16 @@ function ManagerHome({ data }: { data: ManagerDashboard }) {
             <tbody>
               {data.subordinates.map(({ user, previous_business_day, today }) => (
                 <tr key={user.id} className="border-b last:border-b-0">
-                  <th scope="row" className="py-1 pr-3 text-left font-normal">
+                  <th scope="row" className="px-3 py-1 text-left font-normal">
                     {user.name}
                   </th>
-                  <td className="py-1 pr-3">
+                  <td className="px-3 py-1">
                     <SubordinateReport
                       report={previous_business_day}
                       label={`${user.name}の前営業日`}
                     />
                   </td>
-                  <td className="py-1">
+                  <td className="px-3 py-1">
                     <SubordinateReport report={today} label={`${user.name}の今日`} />
                   </td>
                 </tr>

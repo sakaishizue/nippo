@@ -8,7 +8,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function FormCard({ children }: { children: React.ReactNode }) {
   return (
-    <section className="max-w-2xl rounded-xl border bg-card p-4 shadow-xs md:p-6">
+    <section className="max-w-2xl rounded-xl border bg-card p-4 shadow-sm md:p-6">
       {children}
     </section>
   );

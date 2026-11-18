@@ -6,7 +6,7 @@ export function DealStageLabel({ stage }: { stage: DealStage }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 text-xs leading-6 font-bold whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 text-xs leading-6 font-bold whitespace-nowrap",
         stage === "won"
           ? "bg-success-surface text-success"
           : stage === "lost"
@@ -14,6 +14,7 @@ export function DealStageLabel({ stage }: { stage: DealStage }) {
             : "bg-accent text-accent-foreground",
       )}
     >
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {DEAL_STAGE_LABELS[stage]}
     </span>
   );

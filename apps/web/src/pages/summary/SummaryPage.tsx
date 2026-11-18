@@ -36,7 +36,7 @@ function SummaryTable({ summary }: { summary: WorkTimeSummary }) {
   }
   const label = SUMMARY_GROUP_LABELS[summary.group_by];
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <table className="w-full table-fixed border-collapse text-sm">
         <caption className="sr-only">作業時間の集計({label})</caption>
         <colgroup>
@@ -201,7 +201,7 @@ function SearchForm({ conditions, groups, users, onSubmit }: SearchFormProps) {
     <form
       aria-label="集計の条件"
       onSubmit={submit}
-      className="grid grid-cols-1 gap-4 rounded-xl border bg-card p-4 shadow-xs md:grid-cols-3 md:p-5"
+      className="grid grid-cols-1 gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-3 md:p-5"
     >
       <fieldset className="flex min-w-0 flex-col gap-2 md:col-span-2">
         <legend className="mb-2 text-sm font-bold">期間</legend>

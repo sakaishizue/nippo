@@ -9,15 +9,16 @@ const COLORS: Record<ReportStatus, string> = {
   approved: "bg-status-approved text-status-approved-foreground",
 };
 
-/** 日報のステータスの色付きラベル(SCR-02、SCR-03、SCR-05) */
+/** 日報のステータスの色付きラベル(SCR-02、SCR-03、SCR-05)。先頭に文字と同じ色の点を付ける */
 export function ReportStatusLabel({ status }: { status: ReportStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 text-xs leading-6 font-bold whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 text-xs leading-6 font-bold whitespace-nowrap",
         COLORS[status],
       )}
     >
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       {REPORT_STATUS_LABELS[status]}
     </span>
   );

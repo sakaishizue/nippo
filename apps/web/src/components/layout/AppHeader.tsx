@@ -1,64 +1,24 @@
-import type { Me } from "@nippo/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BellIcon, MenuIcon, XIcon } from "lucide-react";
+import { formatDate, type Me, ROLE_LABELS, todayInJst } from "@nippo/shared";
+import { BellIcon, LogOutIcon, MenuIcon, NotebookPenIcon, XIcon } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router";
-import { clearSession } from "@/auth/me";
-import { homePathFor, LOGIN_PATH } from "@/auth/redirect";
-import { api } from "@/lib/api";
+import { Link, NavLink, useLocation } from "react-router";
+import { homePathFor } from "@/auth/redirect";
 import { cn } from "@/lib/utils";
 import { badgeLabel, MENUS, showsNotifications } from "@/navigation";
+import { Avatar, MENU_ICONS, NotificationLink, useLogout } from "./menu";
 
-/** ログアウトする。セッションが切れていて失敗しても、ログイン画面へ移動する */
-const useLogout = () => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => api.post("/auth/logout"),
-    onSettled: async () => {
-      await navigate(LOGIN_PATH, { replace: true });
-      clearSession(queryClient);
-    },
-  });
-};
-
-function NotificationLink({ count, className }: { count: number; className?: string }) {
-  const badge = badgeLabel(count);
-  return (
-    <Link
-      to="/notifications"
-      aria-label={badge ? `通知(未読${count}件)` : "通知"}
-      className={cn(
-        "relative flex size-11 items-center justify-center rounded-lg text-header-foreground hover:bg-header-active focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none",
-        className,
-      )}
-    >
-      <BellIcon aria-hidden="true" className="size-5" />
-      {badge && (
-        <span
-          aria-hidden="true"
-          className="absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] leading-none font-bold text-white"
-        >
-          {badge}
-        </span>
-      )}
-    </Link>
-  );
-}
-
-const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "flex h-11 items-center rounded-lg px-3 text-sm whitespace-nowrap text-header-foreground hover:bg-header-active focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none",
-    isActive && "bg-header-active font-bold",
-  );
+const focusRing = "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "flex h-13 items-center px-6 text-base text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none",
+    "flex h-13 items-center gap-3 px-6 text-base text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none",
     isActive && "border-l-4 border-primary bg-accent pl-5 font-bold text-accent-foreground",
   );
 
-/** 全画面のヘッダー(画面定義書 3.1)。768px 未満ではメニューを折りたたむ(3.2) */
+/**
+ * 全画面の上部バー(画面定義書 3.1)。PC は今日の日付と通知、メニューは左のサイドナビ(AppSidebar)。
+ * 768px 未満では、システム名、通知、ハンバーガーメニューを置き、メニューを折りたたむ(3.2)
+ */
 export function AppHeader({ me }: { me: Me }) {
   const menu = MENUS[me.role];
   const notifications = showsNotifications(me.role);
@@ -84,39 +44,29 @@ export function AppHeader({ me }: { me: Me }) {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-40 bg-header text-header-foreground">
-      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-2 pr-1 pl-4 md:gap-6 md:px-6">
+    <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-2 pr-1 pl-4 md:h-16 md:px-6">
         <Link
           to={homePathFor(me.role)}
-          className="mr-auto flex h-11 items-center text-lg font-bold whitespace-nowrap md:mr-0 focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none"
+          className={cn(
+            "mr-auto flex h-11 items-center gap-2 text-lg font-bold whitespace-nowrap md:hidden",
+            focusRing,
+          )}
         >
+          <span
+            aria-hidden="true"
+            className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
+          >
+            <NotebookPenIcon className="size-4" />
+          </span>
           営業日報
         </Link>
 
-        <nav aria-label="メニュー" className="hidden flex-1 items-center gap-1 md:flex">
-          {menu.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className={desktopLinkClass}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <p className="mr-auto hidden text-sm text-muted-foreground md:block">
+          {formatDate(todayInJst())}
+        </p>
 
         {notifications && <NotificationLink count={me.unread_notification_count} />}
-
-        <Link
-          to="/profile"
-          className="hidden h-11 items-center px-1 text-sm whitespace-nowrap hover:underline focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none md:flex"
-        >
-          {me.name}
-        </Link>
-        <button
-          type="button"
-          onClick={() => logout.mutate()}
-          disabled={logout.isPending}
-          className="hidden h-11 items-center rounded-lg border border-header-border px-3 text-sm whitespace-nowrap hover:bg-header-active focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none disabled:opacity-50 md:flex"
-        >
-          ログアウト
-        </button>
 
         <button
           type="button"
@@ -124,7 +74,10 @@ export function AppHeader({ me }: { me: Me }) {
           aria-controls={menuId}
           aria-label={open ? "メニューを閉じる" : "メニューを開く"}
           onClick={() => setOpen((value) => !value)}
-          className="flex size-11 items-center justify-center rounded-lg hover:bg-header-active focus-visible:ring-3 focus-visible:ring-header-border focus-visible:outline-none md:hidden"
+          className={cn(
+            "flex size-11 items-center justify-center rounded-lg hover:bg-muted md:hidden",
+            focusRing,
+          )}
         >
           {open ? (
             <XIcon aria-hidden="true" className="size-6" />
@@ -143,35 +96,49 @@ export function AppHeader({ me }: { me: Me }) {
           />
           <div
             id={menuId}
-            className="absolute inset-x-0 top-14 flex flex-col bg-card pt-2 pb-4 shadow-lg md:hidden"
+            className="absolute inset-x-0 top-14 flex max-h-[calc(100svh-3.5rem)] flex-col overflow-y-auto border-t bg-card pt-2 pb-4 shadow-lg md:hidden"
           >
             <nav aria-label="メニュー" className="flex flex-col">
-              {menu.map((item) => (
-                <NavLink key={item.to} to={item.to} end={item.end} className={mobileLinkClass}>
-                  {item.label}
-                </NavLink>
-              ))}
+              {menu.map((item) => {
+                const Icon = MENU_ICONS[item.to];
+                return (
+                  <NavLink key={item.to} to={item.to} end={item.end} className={mobileLinkClass}>
+                    {Icon && (
+                      <Icon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+                    )}
+                    {item.label}
+                  </NavLink>
+                );
+              })}
             </nav>
             <div className="my-2 h-px bg-border" />
             {notifications && (
               <NavLink to="/notifications" className={mobileLinkClass}>
+                <BellIcon aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
                 通知
                 {badgeLabel(me.unread_notification_count) && (
-                  <span className="ml-2 rounded-full bg-destructive px-2 text-xs font-bold text-white">
+                  <span className="rounded-full bg-destructive px-2 text-xs font-bold text-white">
                     {badgeLabel(me.unread_notification_count)}
                   </span>
                 )}
               </NavLink>
             )}
             <NavLink to="/profile" className={mobileLinkClass}>
-              {me.name}(プロフィール)
+              <Avatar name={me.name} className="size-6 text-xs" />
+              <span>
+                {me.name}
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  {ROLE_LABELS[me.role]}
+                </span>
+              </span>
             </NavLink>
             <button
               type="button"
               onClick={() => logout.mutate()}
               disabled={logout.isPending}
-              className="mx-4 mt-2 h-12 rounded-lg border border-input text-base hover:bg-muted disabled:opacity-50"
+              className="mx-4 mt-2 flex h-12 items-center justify-center gap-2 rounded-lg border border-input text-base hover:bg-muted disabled:opacity-50"
             >
+              <LogOutIcon aria-hidden="true" className="size-5" />
               ログアウト
             </button>
           </div>

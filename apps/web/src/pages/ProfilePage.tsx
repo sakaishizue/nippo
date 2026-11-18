@@ -6,9 +6,11 @@ import {
   ROLE_LABELS,
 } from "@nippo/shared";
 import { useMutation } from "@tanstack/react-query";
+import { CircleUserRoundIcon, KeyRoundIcon } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { useMe } from "@/auth/me";
 import { notifyError, notifySuccess } from "@/components/notify";
+import { SectionHeading } from "@/components/SectionHeading";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -72,11 +74,11 @@ export function ProfilePage() {
 
       <section
         aria-labelledby="profile-info"
-        className="flex max-w-2xl flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+        className="flex max-w-2xl flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
       >
-        <h2 id="profile-info" className="text-base font-bold md:text-lg">
+        <SectionHeading id="profile-info" icon={CircleUserRoundIcon}>
           登録内容
-        </h2>
+        </SectionHeading>
         <dl className="grid grid-cols-[7rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-base">
           <dt className="text-sm font-bold text-muted-foreground">氏名</dt>
           <dd>{me.name}</dd>
@@ -98,11 +100,11 @@ export function ProfilePage() {
 
       <section
         aria-labelledby="profile-password"
-        className="flex max-w-2xl flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+        className="flex max-w-2xl flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
       >
-        <h2 id="profile-password" className="text-base font-bold md:text-lg">
+        <SectionHeading id="profile-password" icon={KeyRoundIcon}>
           パスワードの変更
-        </h2>
+        </SectionHeading>
         <form
           noValidate
           onSubmit={form.handleSubmit((input) => changePassword.mutate(input))}

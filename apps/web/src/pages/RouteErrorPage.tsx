@@ -11,7 +11,7 @@ const statusOf = (error: unknown): number | undefined => {
 
 function UnexpectedError() {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border bg-card p-6 shadow-xs">
+    <div className="flex flex-col gap-2 rounded-xl border bg-card p-6 shadow-sm">
       <h1 className="text-xl font-bold">エラーが発生しました</h1>
       <p className="text-muted-foreground">時間をおいて、画面を再読み込みしてください。</p>
     </div>

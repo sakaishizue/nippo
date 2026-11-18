@@ -29,7 +29,7 @@ function VisitItem({ visit }: { visit: CustomerVisit | DealVisit }) {
         ? { label: "商談", to: `/deals/${visit.deal.id}`, name: visit.deal.name }
         : null;
   return (
-    <li className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-xs">
+    <li className="flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-bold">{formatDate(visit.visited_on)}</span>
         <span className="text-sm text-muted-foreground">訪問者: {visit.visitor.name}</span>

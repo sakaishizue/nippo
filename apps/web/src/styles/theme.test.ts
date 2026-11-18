@@ -52,8 +52,12 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ["destructive", "destructive-surface"],
   ["success", "success-surface"],
   ["warning", "warning-surface"],
-  ["header-foreground", "header"],
-  ["header-foreground", "header-active"],
+  ["primary", "background"],
+  ["accent-foreground", "card"],
+  ["sidebar-foreground", "sidebar"],
+  ["sidebar-foreground", "sidebar-active"],
+  ["sidebar-muted", "sidebar"],
+  ["sidebar-active-foreground", "sidebar-active"],
   ["status-draft-foreground", "status-draft"],
   ["status-submitted-foreground", "status-submitted"],
   ["status-returned-foreground", "status-returned"],
@@ -65,7 +69,10 @@ const NON_TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ["input", "card"],
   ["input", "background"],
   ["ring", "card"],
-  ["header-border", "header"],
+  ["ring", "background"],
+  ["sidebar-indicator", "sidebar-active"],
+  ["sidebar-ring", "sidebar"],
+  ["sidebar-ring", "sidebar-active"],
 ];
 
 describe("contrastRatio", () => {

@@ -1,9 +1,10 @@
 import { type CustomerDetail, customerDetailSchema, formatDate, formatYen } from "@nippo/shared";
 import { useQuery } from "@tanstack/react-query";
-import { PencilIcon, PlusIcon } from "lucide-react";
+import { Building2Icon, HandshakeIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { DealStageLabel } from "@/components/DealStageLabel";
 import { type Column, DataList } from "@/components/list/DataList";
+import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { VisitHistory } from "@/components/VisitHistory";
 import { api, isApiError } from "@/lib/api";
@@ -91,11 +92,11 @@ export function CustomerDetailPage() {
 
       <section
         aria-labelledby="customer-info"
-        className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+        className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm md:p-6"
       >
-        <h2 id="customer-info" className="text-base font-bold md:text-lg">
+        <SectionHeading id="customer-info" icon={Building2Icon}>
           顧客情報
-        </h2>
+        </SectionHeading>
         <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-2">
           <dt className="text-sm font-bold text-muted-foreground">顧客名</dt>
           <dd className="break-all">{data.name}</dd>
@@ -119,9 +120,9 @@ export function CustomerDetailPage() {
 
       <section aria-labelledby="customer-deals" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="customer-deals" className="text-base font-bold md:text-lg">
+          <SectionHeading id="customer-deals" icon={HandshakeIcon}>
             商談
-          </h2>
+          </SectionHeading>
           {/* 顧客を選択済みの商談登録へ(画面定義書 SCR-09) */}
           <Link
             to={`/deals/new?customer_id=${data.id}`}

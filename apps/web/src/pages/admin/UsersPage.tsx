@@ -115,7 +115,7 @@ export function UsersPage() {
         key={searchParams.toString()}
         aria-label="ユーザーの検索"
         onSubmit={onSearch}
-        className="grid gap-4 rounded-xl border bg-card p-4 shadow-xs md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end md:p-5"
+        className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end md:p-5"
       >
         <Field>
           <FieldLabel htmlFor="users-q">氏名、メールアドレス</FieldLabel>

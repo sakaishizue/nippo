@@ -110,7 +110,7 @@ function DealForm({ deal, initialCustomer }: FormProps) {
         </p>
       )}
 
-      <section className="flex max-w-2xl flex-col rounded-xl border bg-card p-4 shadow-xs md:p-6">
+      <section className="flex max-w-2xl flex-col rounded-xl border bg-card p-4 shadow-sm md:p-6">
         <FieldGroup>
           <Controller
             name="customer"

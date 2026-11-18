@@ -95,7 +95,7 @@ export function NotificationsPage() {
         </p>
       ) : (
         <>
-          <ul aria-label="通知一覧" className="divide-y rounded-xl border bg-card shadow-xs">
+          <ul aria-label="通知一覧" className="divide-y rounded-xl border bg-card shadow-sm">
             {items.map((notification) => {
               const unread = notification.read_at === null;
               return (
