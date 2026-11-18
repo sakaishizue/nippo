@@ -13,7 +13,7 @@ import { now } from "../clock";
 import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
-import { createNotifications } from "../notifications";
+import { createNotifications, resolveNotifications } from "../notifications";
 import { postComment } from "../reports/comment";
 import { findReportDetail } from "../reports/detail";
 import { findPendingReports, reviewReport } from "../reports/review";
@@ -153,7 +153,7 @@ export const reportsRoutes = ({ db }: Options) =>
       },
     )
 
-    // 日報を提出する(F-13)。上長への通知(F-51)を同じトランザクションで作る
+    // 日報を提出する(F-13)。上長への通知(F-51)の作成と、片付いた通知の既読を同じトランザクションで行う
     .post(
       "/:id{[0-9]+}/submit",
       requireRole("member"),
@@ -199,6 +199,13 @@ export const reportsRoutes = ({ db }: Options) =>
               status: "submitted",
               author: { id: user.id, name: user.name, managerId: user.managerId },
             },
+          });
+          // 本人宛ての差し戻しの通知と、対象日のリマインドは、提出で用件が片付く
+          await resolveNotifications(tx, {
+            type: "submitted",
+            reportId: id,
+            userId: user.id,
+            reportDate: toDateOnly(report.reportDate),
           });
         });
         return c.json(await findReportDetail(db, id, user));

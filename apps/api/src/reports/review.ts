@@ -10,7 +10,7 @@ import { now } from "../clock";
 import { toDateOnly } from "../dates";
 import type { Db } from "../db";
 import { AppError } from "../errors";
-import { createNotifications } from "../notifications";
+import { createNotifications, resolveNotifications } from "../notifications";
 import { visibleReportsWhere } from "./access";
 
 // 承認と差し戻し(F-41〜43、F-52)、承認待ちの一覧(F-45)
@@ -20,6 +20,7 @@ const notSubmitted = () =>
 
 /**
  * 日報を承認または差し戻す。承認履歴と作成者への通知を、ステータスの更新と同じトランザクションで作る。
+ * 用件が片付いた提出の通知も、同じトランザクションで既読にする。
  * 閲覧範囲の外(部下以外、下書き)は null を返す(呼び出し側で 404 にする)
  */
 export const reviewReport = async (
@@ -61,6 +62,8 @@ export const reviewReport = async (
         author: report.user,
       },
     });
+    // 上長宛ての提出の通知は、承認か差し戻しで用件が片付く
+    await resolveNotifications(tx, { type: "reviewed", reportId: id });
   });
   return true;
 };
