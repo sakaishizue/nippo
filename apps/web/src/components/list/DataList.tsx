@@ -24,7 +24,7 @@ type Props<T> = {
 export function DataList<T>({ items, columns, getKey, renderCard, empty, caption }: Props<T>) {
   if (items.length === 0) {
     return (
-      <p className="rounded-xl border bg-card p-6 text-center text-muted-foreground">
+      <p className="rounded-xl border border-dashed bg-card p-8 text-center text-muted-foreground">
         {empty ?? "該当するデータがありません"}
       </p>
     );
@@ -32,16 +32,19 @@ export function DataList<T>({ items, columns, getKey, renderCard, empty, caption
 
   return (
     <>
-      <div className="hidden overflow-x-auto rounded-xl border bg-card shadow-xs md:block">
+      <div className="hidden overflow-x-auto rounded-xl border bg-card shadow-sm md:block">
         <table className="w-full border-collapse text-sm">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b bg-background text-left text-muted-foreground">
+            <tr className="border-b bg-muted text-left text-muted-foreground">
               {columns.map((column) => (
                 <th
                   key={column.header}
                   scope="col"
-                  className={cn("px-4 py-3 font-bold", column.align === "right" && "text-right")}
+                  className={cn(
+                    "px-5 py-2.5 font-bold whitespace-nowrap",
+                    column.align === "right" && "text-right",
+                  )}
                 >
                   {column.header}
                 </th>
@@ -50,11 +53,17 @@ export function DataList<T>({ items, columns, getKey, renderCard, empty, caption
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={getKey(item)} className="border-b last:border-b-0">
+              <tr
+                key={getKey(item)}
+                className="border-b transition-colors last:border-b-0 hover:bg-accent/40"
+              >
                 {columns.map((column) => (
                   <td
                     key={column.header}
-                    className={cn("px-4 py-3.5", column.align === "right" && "text-right")}
+                    className={cn(
+                      "px-5 py-3.5",
+                      column.align === "right" && "text-right tabular-nums",
+                    )}
                   >
                     {column.cell(item)}
                   </td>
@@ -67,7 +76,10 @@ export function DataList<T>({ items, columns, getKey, renderCard, empty, caption
 
       <ul aria-label={caption} className="flex flex-col gap-3 md:hidden">
         {items.map((item) => (
-          <li key={getKey(item)} className="rounded-xl border bg-card shadow-xs">
+          <li
+            key={getKey(item)}
+            className="rounded-xl border bg-card shadow-sm transition-colors hover:border-primary/40"
+          >
             {renderCard(item)}
           </li>
         ))}

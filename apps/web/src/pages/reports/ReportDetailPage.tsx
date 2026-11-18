@@ -9,10 +9,20 @@ import {
   WORK_CATEGORY_LABELS,
 } from "@nippo/shared";
 import { useQuery } from "@tanstack/react-query";
-import { PencilIcon } from "lucide-react";
+import {
+  CalendarDaysIcon,
+  ClipboardCheckIcon,
+  InfoIcon,
+  LightbulbIcon,
+  ListChecksIcon,
+  type LucideIcon,
+  MessageSquareIcon,
+  PencilIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { ReportStatusLabel } from "@/components/ReportStatusLabel";
+import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { api, isApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -39,11 +49,13 @@ function MultilineText({ value }: { value: string | null }) {
 function Section({
   id,
   title,
+  icon,
   children,
   className,
 }: {
   id: string;
   title: ReactNode;
+  icon: LucideIcon;
   children: ReactNode;
   className?: string;
 }) {
@@ -51,13 +63,13 @@ function Section({
     <section
       aria-labelledby={id}
       className={cn(
-        "flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs md:p-6",
+        "flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-6",
         className,
       )}
     >
-      <h2 id={id} className="text-base font-bold md:text-lg">
+      <SectionHeading id={id} icon={icon}>
         {title}
-      </h2>
+      </SectionHeading>
       {children}
     </section>
   );
@@ -144,7 +156,7 @@ function ReportContent({ report }: { report: ReportDetail }) {
         {can_review && <ReviewActions report={report} />}
       </div>
 
-      <Section id="report-info" title="日報の情報">
+      <Section id="report-info" title="日報の情報" icon={InfoIcon}>
         <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-2">
           <dt className="text-sm font-bold text-muted-foreground">日付</dt>
           <dd>{formatDate(report.report_date)}</dd>
@@ -161,6 +173,7 @@ function ReportContent({ report }: { report: ReportDetail }) {
 
       <Section
         id="report-work"
+        icon={ListChecksIcon}
         title={
           <span className="flex flex-wrap items-baseline justify-between gap-2">
             作業
@@ -182,15 +195,15 @@ function ReportContent({ report }: { report: ReportDetail }) {
       </Section>
 
       <div className="grid gap-5 md:grid-cols-2 md:gap-6">
-        <Section id="report-reflection" title="所感">
+        <Section id="report-reflection" title="所感" icon={LightbulbIcon}>
           <MultilineText value={report.reflection} />
         </Section>
-        <Section id="report-next-plan" title="翌日の予定">
+        <Section id="report-next-plan" title="翌日の予定" icon={CalendarDaysIcon}>
           <MultilineText value={report.next_plan} />
         </Section>
       </div>
 
-      <Section id="report-reviews" title="承認履歴">
+      <Section id="report-reviews" title="承認履歴" icon={ClipboardCheckIcon}>
         {report.reviews.length === 0 ? (
           <p className="text-muted-foreground">承認、差し戻しの履歴はありません</p>
         ) : (
@@ -220,7 +233,7 @@ function ReportContent({ report }: { report: ReportDetail }) {
         )}
       </Section>
 
-      <Section id="report-comments" title="コメント">
+      <Section id="report-comments" title="コメント" icon={MessageSquareIcon}>
         {report.comments.length === 0 ? (
           <p className="text-muted-foreground">コメントはありません</p>
         ) : (

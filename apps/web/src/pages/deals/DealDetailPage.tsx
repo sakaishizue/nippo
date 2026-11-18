@@ -1,8 +1,9 @@
 import { dealDetailSchema, formatDate, formatYen } from "@nippo/shared";
 import { useQuery } from "@tanstack/react-query";
-import { PencilIcon } from "lucide-react";
+import { HandshakeIcon, PencilIcon } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { DealStageLabel } from "@/components/DealStageLabel";
+import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { VisitHistory } from "@/components/VisitHistory";
 import { api, isApiError } from "@/lib/api";
@@ -42,11 +43,11 @@ export function DealDetailPage() {
 
       <section
         aria-labelledby="deal-info"
-        className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+        className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm md:p-6"
       >
-        <h2 id="deal-info" className="text-base font-bold md:text-lg">
+        <SectionHeading id="deal-info" icon={HandshakeIcon}>
           商談情報
-        </h2>
+        </SectionHeading>
         <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-2">
           <dt className="text-sm font-bold text-muted-foreground">商談名</dt>
           <dd className="break-all">{data.name}</dd>

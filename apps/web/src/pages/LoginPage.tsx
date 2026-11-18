@@ -6,6 +6,7 @@ import {
   meSchema,
 } from "@nippo/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { NotebookPenIcon } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router";
 import { setMe } from "@/auth/me";
@@ -51,59 +52,69 @@ export function LoginPage() {
   const serverError = form.formState.errors.root?.serverError;
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center p-4">
-      <p className="text-center text-sm text-muted-foreground">営業日報</p>
-      <h1 className="mt-1 mb-6 text-center text-xl font-bold">ログイン</h1>
-      <form noValidate onSubmit={form.handleSubmit((input) => login.mutate(input))}>
-        <FieldGroup>
-          {serverError && (
-            <p role="alert" className="text-sm text-destructive">
-              {serverError.message}
-            </p>
-          )}
-          <Controller
-            name="email"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>メールアドレス</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="email"
-                  inputMode="email"
-                  autoComplete="username"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
+    <main className="flex min-h-svh flex-col items-center justify-center p-4">
+      <div className="flex w-full max-w-sm flex-col rounded-xl border bg-card p-6 shadow-sm md:p-8">
+        <p className="flex items-center justify-center gap-2 font-bold text-muted-foreground">
+          <span
+            aria-hidden="true"
+            className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+          >
+            <NotebookPenIcon className="size-4.5" />
+          </span>
+          営業日報
+        </p>
+        <h1 className="mt-4 mb-6 text-center text-xl font-bold">ログイン</h1>
+        <form noValidate onSubmit={form.handleSubmit((input) => login.mutate(input))}>
+          <FieldGroup>
+            {serverError && (
+              <p role="alert" className="text-sm text-destructive">
+                {serverError.message}
+              </p>
             )}
-          />
-          <Controller
-            name="password"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>パスワード</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="password"
-                  autoComplete="current-password"
-                  aria-invalid={fieldState.invalid}
-                  className="h-11"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          {/* 画面定義書 3.2: タップする要素は高さ44px以上 */}
-          <Button type="submit" className="h-11 w-full" disabled={login.isPending}>
-            {login.isPending ? "ログイン中…" : "ログイン"}
-          </Button>
-        </FieldGroup>
-      </form>
+            <Controller
+              name="email"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>メールアドレス</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="username"
+                    aria-invalid={fieldState.invalid}
+                    className="h-11"
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="password"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>パスワード</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    type="password"
+                    autoComplete="current-password"
+                    aria-invalid={fieldState.invalid}
+                    className="h-11"
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            {/* 画面定義書 3.2: タップする要素は高さ44px以上 */}
+            <Button type="submit" className="h-11 w-full" disabled={login.isPending}>
+              {login.isPending ? "ログイン中…" : "ログイン"}
+            </Button>
+          </FieldGroup>
+        </form>
+      </div>
     </main>
   );
 }

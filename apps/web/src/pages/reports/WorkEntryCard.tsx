@@ -35,7 +35,7 @@ export function WorkEntryCard({ index, onRemove, onRegisterCustomer }: Props) {
   return (
     <li
       aria-labelledby={headingId}
-      className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-xs md:p-6"
+      className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
     >
       <div className="flex items-center justify-between gap-2">
         <h3 id={headingId} className="font-bold">

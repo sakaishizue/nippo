@@ -10,13 +10,14 @@ import {
   todayInJst,
 } from "@nippo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusIcon } from "lucide-react";
+import { ListChecksIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CustomerForm } from "@/components/customers/CustomerForm";
 import { notifyError, notifyInfo, notifySuccess } from "@/components/notify";
+import { SectionHeading } from "@/components/SectionHeading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -216,7 +217,7 @@ function ReportForm({ report, initialDate }: FormProps) {
           </p>
         )}
 
-        <section className="rounded-xl border bg-card p-4 shadow-xs md:p-6">
+        <section className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
           <Controller
             name="report_date"
             control={form.control}
@@ -254,9 +255,9 @@ function ReportForm({ report, initialDate }: FormProps) {
         </section>
 
         <section aria-labelledby="work-heading" className="flex flex-col gap-3">
-          <h2 id="work-heading" className="text-base font-bold md:text-lg">
+          <SectionHeading id="work-heading" icon={ListChecksIcon}>
             作業
-          </h2>
+          </SectionHeading>
           {entriesError && (
             <p role="alert" className="text-sm text-destructive">
               {entriesError.message}
@@ -289,7 +290,7 @@ function ReportForm({ report, initialDate }: FormProps) {
           </Button>
         </section>
 
-        <section className="flex flex-col gap-5 rounded-xl border bg-card p-4 shadow-xs md:p-6">
+        <section className="flex flex-col gap-5 rounded-xl border bg-card p-4 shadow-sm md:p-6">
           <Controller
             name="reflection"
             control={form.control}
@@ -331,7 +332,7 @@ function ReportForm({ report, initialDate }: FormProps) {
         </section>
 
         {/* スマートフォンでは、合計時間と「下書き保存」「提出」を画面の下に固定する(画面定義書 3.5) */}
-        <div className="fixed inset-x-0 bottom-0 z-10 flex flex-col gap-2 border-t bg-card p-3 shadow-lg md:static md:flex-row md:items-center md:justify-between md:rounded-xl md:border md:p-4 md:shadow-xs">
+        <div className="fixed inset-x-0 bottom-0 z-10 flex flex-col gap-2 border-t bg-card p-3 shadow-lg md:static md:flex-row md:items-center md:justify-between md:rounded-xl md:border md:p-4 md:shadow-sm">
           <p
             aria-live="polite"
             className={cn("text-sm", overLimit && "font-bold text-destructive")}

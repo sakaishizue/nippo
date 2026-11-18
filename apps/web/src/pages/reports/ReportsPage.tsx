@@ -239,7 +239,7 @@ function SearchForm({
         aria-label="日報の検索"
         onSubmit={submit}
         className={cn(
-          "grid grid-cols-1 gap-4 rounded-xl border bg-card p-4 shadow-xs md:grid md:grid-cols-3 md:p-5",
+          "grid grid-cols-1 gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid md:grid-cols-3 md:p-5",
           !open && "hidden",
         )}
       >

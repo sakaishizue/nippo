@@ -3,8 +3,9 @@ import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router";
 import { ME_QUERY_KEY, useMe } from "@/auth/me";
 import { AppHeader } from "./AppHeader";
+import { AppSidebar } from "./AppSidebar";
 
-/** ログインが必要な画面の共通レイアウト(画面定義書 3.1)。ヘッダーと、各画面の内容 */
+/** ログインが必要な画面の共通レイアウト(画面定義書 3.1)。サイドナビ(PC)、上部バー、各画面の内容 */
 export function AppLayout() {
   const me = useMe();
   const queryClient = useQueryClient();
@@ -20,7 +21,8 @@ export function AppLayout() {
   }, [pathname, queryClient]);
 
   return (
-    <div className="min-h-svh">
+    <div className="min-h-svh md:pl-60">
+      <AppSidebar me={me} />
       <AppHeader me={me} />
       <main className="mx-auto max-w-[1120px] px-4 py-5 md:px-6 md:py-8">
         <Outlet />

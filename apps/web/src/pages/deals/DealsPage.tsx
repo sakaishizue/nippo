@@ -214,7 +214,7 @@ function SearchForm({
     <form
       aria-label="商談の検索"
       onSubmit={(event) => onSubmit(event, customer)}
-      className="grid gap-4 rounded-xl border bg-card p-4 shadow-xs md:grid-cols-3 md:p-5"
+      className="grid gap-4 rounded-xl border bg-card p-4 shadow-sm md:grid-cols-3 md:p-5"
     >
       <Field>
         <FieldLabel htmlFor="deals-q">商談名</FieldLabel>

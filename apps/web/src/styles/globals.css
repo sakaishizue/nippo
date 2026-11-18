@@ -43,10 +43,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-header: var(--header);
-  --color-header-foreground: var(--header-foreground);
-  --color-header-active: var(--header-active);
-  --color-header-border: var(--header-border);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-indicator: var(--sidebar-indicator);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-status-draft: var(--status-draft);
   --color-status-draft-foreground: var(--status-draft-foreground);
   --color-status-submitted: var(--status-submitted);
@@ -74,8 +78,8 @@
   /* ボタンと入力欄は 8px(rounded-lg)、カードは rounded-xl */
   --radius: 0.5rem;
 
-  /* 画面の背景、カード、文字 */
-  --background: #f8fafc;
+  /* 画面の背景(淡いグレー)、カード(白)、文字 */
+  --background: #f4f5f9;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
@@ -110,11 +114,15 @@
   --warning-surface: #fffbeb;
   --warning-outline: #fde68a;
 
-  /* ヘッダー */
-  --header: #3730a3;
-  --header-foreground: #ffffff;
-  --header-active: #4f46e5;
-  --header-border: #a5b4fc;
+  /* サイドナビ(PC、画面定義書 3.1)。濃紺の面に、選択中は明るい面と左の線で示す */
+  --sidebar: #1e1b4b;
+  --sidebar-foreground: #e0e7ff;
+  --sidebar-muted: #a5b4fc;
+  --sidebar-active: #312e81;
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-indicator: #818cf8;
+  --sidebar-border: #312e81;
+  --sidebar-ring: #a5b4fc;
 
   /* 日報のステータスのラベル(背景と文字) */
   --status-draft: #f1f5f9;
