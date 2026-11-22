@@ -2,6 +2,7 @@ import { type Me, ROLE_LABELS } from "@nippo/shared";
 import { LogOutIcon, NotebookPenIcon } from "lucide-react";
 import { Link, NavLink } from "react-router";
 import { homePathFor } from "@/auth/redirect";
+import { ReportCalendar } from "@/components/calendar/ReportCalendar";
 import { cn } from "@/lib/utils";
 import { MENUS } from "@/navigation";
 import { Avatar, MENU_ICONS, useLogout } from "./menu";
@@ -40,20 +41,23 @@ export function AppSidebar({ me }: { me: Me }) {
         営業日報
       </Link>
 
-      <nav aria-label="メニュー" className="mt-6 flex flex-1 flex-col gap-1 overflow-y-auto px-3">
-        <p aria-hidden="true" className="px-3 pb-1 text-xs font-bold text-sidebar-muted">
-          メニュー
-        </p>
-        {MENUS[me.role].map((item) => {
-          const Icon = MENU_ICONS[item.to];
-          return (
-            <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
-              {Icon && <Icon aria-hidden="true" className="size-5 shrink-0" />}
-              {item.label}
-            </NavLink>
-          );
-        })}
-      </nav>
+      <div className="mt-6 flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-4">
+        <nav aria-label="メニュー" className="flex flex-col gap-1">
+          <p aria-hidden="true" className="px-3 pb-1 text-xs font-bold text-sidebar-muted">
+            メニュー
+          </p>
+          {MENUS[me.role].map((item) => {
+            const Icon = MENU_ICONS[item.to];
+            return (
+              <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+                {Icon && <Icon aria-hidden="true" className="size-5 shrink-0" />}
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+        <ReportCalendar me={me} tone="sidebar" />
+      </div>
 
       <div className="flex flex-col gap-1 border-t border-sidebar-border p-3">
         <Link

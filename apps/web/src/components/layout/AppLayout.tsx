@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router";
 import { ME_QUERY_KEY, useMe } from "@/auth/me";
+import { CalendarFocusProvider } from "@/components/calendar/calendar-focus";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
 
@@ -21,12 +22,14 @@ export function AppLayout() {
   }, [pathname, queryClient]);
 
   return (
-    <div className="min-h-svh md:pl-60">
-      <AppSidebar me={me} />
-      <AppHeader me={me} />
-      <main className="mx-auto max-w-[1120px] px-4 py-5 md:px-6 md:py-8">
-        <Outlet />
-      </main>
-    </div>
+    <CalendarFocusProvider>
+      <div className="min-h-svh md:pl-60">
+        <AppSidebar me={me} />
+        <AppHeader me={me} />
+        <main className="mx-auto max-w-[1120px] px-4 py-5 md:px-6 md:py-8">
+          <Outlet />
+        </main>
+      </div>
+    </CalendarFocusProvider>
   );
 }

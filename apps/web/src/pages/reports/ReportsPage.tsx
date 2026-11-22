@@ -16,6 +16,7 @@ import { PlusIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
 import { useMe } from "@/auth/me";
+import { useCalendarFocus } from "@/components/calendar/calendar-focus";
 import { CustomerCombobox, type CustomerOption } from "@/components/customers/CustomerCombobox";
 import { type Column, DataList } from "@/components/list/DataList";
 import { Pagination } from "@/components/list/Pagination";
@@ -96,6 +97,8 @@ export function ReportsPage() {
   const { searchParams, page, search } = useListSearch();
   const conditions = reportSearchFrom(searchParams, today);
   const { from, to, userId, customerId, statuses, q } = conditions;
+  // 1日だけの検索(カレンダーから開いたときなど)は、その日をカレンダーで選択中にする
+  useCalendarFocus(from && from === to ? from : null);
 
   // URL の顧客IDから、検索欄に出す顧客名を取る
   const selectedCustomer = useQuery({

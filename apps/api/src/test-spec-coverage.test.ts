@@ -31,14 +31,14 @@ const missingIn = (ids: string[], sources: string) =>
 
 describe("テスト仕様書のケースとテストの対応", () => {
   it("4章の API テストのケースは、すべて API テストにある", () => {
-    const ids = caseIds("AUTH|RPT|SUB|REV|CMT|VIEW|SUM|CUS|DEAL|NTF|RMD|USR");
+    const ids = caseIds("AUTH|RPT|SUB|REV|CMT|VIEW|SUM|CUS|DEAL|NTF|RMD|USR|CAL");
     expect(ids.length).toBeGreaterThan(100);
     expect(missingIn(ids, apiTests)).toEqual([]);
   });
 
   it("5章の画面テストのケースは、すべて画面テストにある", () => {
     const ids = caseIds("E2E");
-    expect(ids).toHaveLength(19);
+    expect(ids).toHaveLength(20);
     expect(missingIn(ids, e2eTests)).toEqual([]);
   });
 

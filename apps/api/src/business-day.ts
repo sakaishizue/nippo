@@ -32,6 +32,14 @@ export const isHoliday = (date: string): boolean => {
   return holidayJp.isHoliday(date);
 };
 
+const holidays: Readonly<Record<string, { name: string } | undefined>> = holidayJp.holidays;
+
+/** 祝日の名前(「文化の日」など)。祝日でなければ null */
+export const holidayName = (date: string): string | null => {
+  parse(date);
+  return holidays[date]?.name ?? null;
+};
+
 /** 営業日(土日と祝日以外)か */
 export const isBusinessDay = (date: string): boolean => !isWeekend(date) && !isHoliday(date);
 

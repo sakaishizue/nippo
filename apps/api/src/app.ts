@@ -6,6 +6,7 @@ import type { Db } from "./db";
 import { handleError, handleNotFound } from "./errors";
 import { requestLogger } from "./logger";
 import { loginRoutes, logoutRoutes } from "./routes/auth";
+import { calendarRoutes } from "./routes/calendar";
 import { customersRoutes } from "./routes/customers";
 import { dashboardRoutes } from "./routes/dashboard";
 import { dealsRoutes } from "./routes/deals";
@@ -54,6 +55,7 @@ export const createApp = ({ db, secureCookie, webDir }: AppOptions) => {
   app.route("/deals", dealsRoutes({ db }));
   app.route("/reports", reportsRoutes({ db }));
   app.route("/dashboard", dashboardRoutes({ db }));
+  app.route("/calendar", calendarRoutes({ db }));
   app.route("/work-time-summary", workTimeSummaryRoutes({ db }));
   app.route("/notifications", notificationsRoutes({ db }));
 

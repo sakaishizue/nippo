@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Controller, FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useCalendarFocus } from "@/components/calendar/calendar-focus";
 import { CustomerForm } from "@/components/customers/CustomerForm";
 import { notifyError, notifyInfo, notifySuccess } from "@/components/notify";
 import { SectionHeading } from "@/components/SectionHeading";
@@ -68,6 +69,8 @@ function ReportForm({ report, initialDate }: FormProps) {
   const entries = useFieldArray({ control: form.control, name: "work_entries" });
   const watchedEntries = useWatch({ control: form.control, name: "work_entries" });
   const reportDate = useWatch({ control: form.control, name: "report_date" });
+  // 入力中の日付を、カレンダーで選択中にする
+  useCalendarFocus(reportDate);
   const { allowLeave, dialog: leaveDialog } = useUnsavedChanges(form.formState.isDirty);
 
   const [confirmSubmit, setConfirmSubmit] = useState(false);
@@ -415,7 +418,8 @@ export function ReportCreatePage() {
   return (
     <div className="flex flex-col gap-5 md:gap-6">
       <h1 className="text-xl font-bold">日報作成</h1>
-      <ReportForm initialDate={initialDate} />
+      {/* カレンダーで別の日を選んだときは、その日付で作り直す */}
+      <ReportForm key={initialDate ?? "today"} initialDate={initialDate} />
     </div>
   );
 }

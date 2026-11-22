@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
+import { useCalendarFocus } from "@/components/calendar/calendar-focus";
 import { ReportStatusLabel } from "@/components/ReportStatusLabel";
 import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
@@ -137,6 +138,7 @@ function WorkEntryItem({ entry, index }: { entry: ReportWorkEntry; index: number
 
 function ReportContent({ report }: { report: ReportDetail }) {
   const { can_edit, can_review, can_comment } = report.permissions;
+  useCalendarFocus(report.report_date);
   return (
     // スマートフォンでは承認と差し戻しのボタンを画面の下に固定するため、その分の余白を空ける
     <div className={cn("flex flex-col gap-5 md:gap-6", can_review && "pb-24 md:pb-0")}>
