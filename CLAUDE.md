@@ -62,6 +62,7 @@ APIテスト(データベースを使うテスト):
 
 - ファイル名は `*.db.test.ts`。Vitest の `api-db` プロジェクトで、ファイルを1つずつ順に実行する。それ以外の `*.test.ts` は `unit` プロジェクト
 - 接続先は `TEST_DATABASE_URL`(`apps/api/.env.example` と同じ場所の `.env.test`、見本は `.env.test.example`)。開発用とは別のデータベースにする。テストのたびに全データを消すため
+- Docker がない場合は、別の端末で `pnpm --filter @nippo/api test-db` を起動したままにする(`src/cli/test-db.ts`、ポート 51222)。データを保存しない設定のため、止めると中身は消える(テストは毎回マイグレーションから作り直すので困らない)。`prisma dev --name nippo-test` で保存する設定にすると、データの記録が数GBに増えて起動しなくなる(#120)
 - 未設定のとき、ローカルではデータベースを使うテストを飛ばし、CI ではエラーにする。CI は「Lint and unit tests」のサービスコンテナの PostgreSQL を使う
 - 実行前にマイグレーションを自動で適用し(`src/testing/global-setup.ts`)、テストごとに全テーブルを空にする(`src/testing/setup-db.ts`)
 - データベースのクライアントは `testDb`(`src/testing/test-db.ts`)。テスト仕様書 3章のデータは `seedTestData(testDb)`(`src/testing/fixtures.ts`)で作り、A1、M1、U1、R-sub などの記号で参照する
