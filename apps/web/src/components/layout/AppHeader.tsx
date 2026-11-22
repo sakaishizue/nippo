@@ -3,6 +3,7 @@ import { BellIcon, LogOutIcon, MenuIcon, NotebookPenIcon, XIcon } from "lucide-r
 import { useEffect, useId, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { homePathFor } from "@/auth/redirect";
+import { ReportCalendar } from "@/components/calendar/ReportCalendar";
 import { cn } from "@/lib/utils";
 import { badgeLabel, MENUS, showsNotifications } from "@/navigation";
 import { Avatar, MENU_ICONS, NotificationLink, useLogout } from "./menu";
@@ -96,7 +97,7 @@ export function AppHeader({ me }: { me: Me }) {
           />
           <div
             id={menuId}
-            className="absolute inset-x-0 top-14 flex max-h-[calc(100svh-3.5rem)] flex-col overflow-y-auto border-t bg-card pt-2 pb-4 shadow-lg md:hidden"
+            className="absolute inset-x-0 top-14 flex max-h-[calc(100svh-3.5rem)] flex-col overflow-y-auto *:shrink-0 border-t bg-card pt-2 pb-4 shadow-lg md:hidden"
           >
             <nav aria-label="メニュー" className="flex flex-col">
               {menu.map((item) => {
@@ -111,6 +112,10 @@ export function AppHeader({ me }: { me: Me }) {
                 );
               })}
             </nav>
+            <div className="my-2 h-px bg-border" />
+            <div className="px-4">
+              <ReportCalendar me={me} tone="card" />
+            </div>
             <div className="my-2 h-px bg-border" />
             {notifications && (
               <NavLink to="/notifications" className={mobileLinkClass}>

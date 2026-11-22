@@ -51,6 +51,12 @@
   --color-sidebar-indicator: var(--sidebar-indicator);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-holiday: var(--sidebar-holiday);
+  --color-sidebar-status-draft: var(--sidebar-status-draft);
+  --color-sidebar-status-submitted: var(--sidebar-status-submitted);
+  --color-sidebar-status-returned: var(--sidebar-status-returned);
+  --color-sidebar-status-approved: var(--sidebar-status-approved);
+  --color-holiday: var(--holiday);
   --color-status-draft: var(--status-draft);
   --color-status-draft-foreground: var(--status-draft-foreground);
   --color-status-submitted: var(--status-submitted);
@@ -123,6 +129,14 @@
   --sidebar-indicator: #818cf8;
   --sidebar-border: #312e81;
   --sidebar-ring: #a5b4fc;
+
+  /* カレンダー(画面定義書 3.1)。土日祝日の赤と、日報のステータスの点。サイドナビの上の色と、白い面の上の色 */
+  --holiday: #b91c1c;
+  --sidebar-holiday: #fca5a5;
+  --sidebar-status-draft: #cbd5e1;
+  --sidebar-status-submitted: #93c5fd;
+  --sidebar-status-returned: #fdba74;
+  --sidebar-status-approved: #86efac;
 
   /* 日報のステータスのラベル(背景と文字) */
   --status-draft: #f1f5f9;

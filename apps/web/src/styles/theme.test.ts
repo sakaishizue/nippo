@@ -62,6 +62,12 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ["status-submitted-foreground", "status-submitted"],
   ["status-returned-foreground", "status-returned"],
   ["status-approved-foreground", "status-approved"],
+  // カレンダーの土日祝日の日付(サイドナビと、スマートフォンのメニューの白い面)
+  ["holiday", "card"],
+  ["holiday", "muted"],
+  ["holiday", "accent"],
+  ["sidebar-holiday", "sidebar"],
+  ["sidebar-holiday", "sidebar-active"],
 ];
 
 // 入力欄の枠やフォーカスの輪など、文字以外の部品(WCAG 1.4.11 の 3:1)
@@ -73,6 +79,15 @@ const NON_TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ["sidebar-indicator", "sidebar-active"],
   ["sidebar-ring", "sidebar"],
   ["sidebar-ring", "sidebar-active"],
+  // カレンダーの日報のステータスの点
+  ...["draft", "submitted", "returned", "approved"].flatMap((status) => [
+    [`sidebar-status-${status}`, "sidebar"] as const,
+    [`sidebar-status-${status}`, "sidebar-active"] as const,
+    [`status-${status}-foreground`, "card"] as const,
+    [`status-${status}-foreground`, "accent"] as const,
+  ]),
+  ["sidebar-muted", "sidebar-active"],
+  ["muted-foreground", "accent"],
 ];
 
 describe("contrastRatio", () => {
@@ -96,5 +111,14 @@ describe("テーマの配色", () => {
       token(`status-${s}`),
     );
     expect(new Set(backgrounds).size).toBe(backgrounds.length);
+  });
+});
+
+describe("カレンダーの配色", () => {
+  it("サイドナビのステータスの点どうしは同じ色にしない", () => {
+    const dots = ["draft", "submitted", "returned", "approved"].map((s) =>
+      token(`sidebar-status-${s}`),
+    );
+    expect(new Set(dots).size).toBe(dots.length);
   });
 });

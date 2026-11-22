@@ -1,6 +1,12 @@
 import { toJstDateString } from "@nippo/shared";
 import { describe, expect, test } from "vitest";
-import { isBusinessDay, isHoliday, isWeekend, previousBusinessDay } from "./business-day";
+import {
+  holidayName,
+  isBusinessDay,
+  isHoliday,
+  isWeekend,
+  previousBusinessDay,
+} from "./business-day";
 
 describe("isBusinessDay", () => {
   test.each([
@@ -58,5 +64,17 @@ describe("入力のチェック", () => {
   test.each(["2026-11-6", "2026/11/06", "2026-02-30", ""])("%s はエラー", (date) => {
     expect(() => isBusinessDay(date)).toThrow(RangeError);
     expect(() => previousBusinessDay(date)).toThrow(RangeError);
+  });
+});
+
+describe("holidayName", () => {
+  test.each([
+    ["2026-11-03", "文化の日"],
+    ["2026-05-06", "こどもの日 振替休日"],
+    ["2026-09-22", "休日"], // 国民の休日
+    ["2026-11-04", null],
+    ["2026-11-07", null],
+  ])("%s は %s", (date, expected) => {
+    expect(holidayName(date)).toBe(expected);
   });
 });
